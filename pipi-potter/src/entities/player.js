@@ -99,7 +99,7 @@ export class Player {
     const ax = input.axis();
     let mx = ax.x, my = ax.y;
     const len = Math.hypot(mx, my);
-    let speed = CONFIG.player.speed;
+    let speed = CONFIG.player.speed * (this.speedMul || 1);
     this.moving = len > 0;
     if (len > 0) {
       mx /= len; my /= len;

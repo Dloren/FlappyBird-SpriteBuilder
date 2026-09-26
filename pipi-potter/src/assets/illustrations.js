@@ -51,15 +51,28 @@ export function drawGameOverArt(ctx, info, x, y, t) {
   const cx = x + 96, cy = y + 24;
   switch (info.type) {
     case 'friends': {
-      const others = info.extraSpecs || [];
-      if (others[0]) drawCharacter(ctx, others[0], 'left', 0, cx + 16, cy - 6, 2);
-      drawCharacter(ctx, cs, 'left', 0, cx, cy, 2);
-      phone(ctx, cx + 2, cy + 18, t);
-      if (others[0]) phone(ctx, cx + 18, cy + 12, t + 0.3);
-      // REC
+      // Todos los que había en pantalla se ríen (amigos x2 delante, el resto detrás)
+      const crowd = info.onScreen || [];
+      const backs = crowd.filter((c) => !c.friend).slice(0, 7);
+      const fronts = crowd.filter((c) => c.friend).slice(0, 3);
+      backs.forEach((c, i) => {
+        const bx = x + 58 + i * 12, by = y + 18 + (i % 2) * 3 + (Math.floor(t * 6 + i) % 2 ? -1 : 0);
+        drawCharacter(ctx, c.spec, 'left', 0, bx, by);
+        if (Math.floor(t * 3 + i) % 3 === 0) drawText(ctx, 'JA', bx + 2, by - 7, UI.yellow, 1, UI.ink);
+      });
+      const all = [...fronts, { spec: cs, friend: true }];
+      const n = all.length;
+      all.forEach((c, i) => {
+        const bob = Math.floor(t * 8 + i * 1.7) % 2 ? -2 : 0;
+        const fx = x + 144 - 34 - (n - 1 - i) * 20, fy = y + 26 + bob + (i % 2) * 2;
+        drawCharacter(ctx, c.spec, 'left', i % 2 ? 1 : 0, fx, fy, 2);
+        phone(ctx, fx + 2, fy + 18, t + i * 0.3);
+        // boca abierta de la risa
+        R(ctx, fx + 8, fy + 16, 4, 2, UI.ink);
+      });
       if (Math.floor(t * 2) % 2) R(ctx, x + W - 26, y + 5, 4, 4, UI.red);
       drawText(ctx, 'REC', x + W - 20, y + 5, UI.light);
-      bubble(ctx, Math.floor(t * 3) % 2 ? '¡JAJAJA!' : '¡JOJOJO!', x + 70, y + 6);
+      bubble(ctx, Math.floor(t * 3) % 2 ? '¡JAJAJAJA!' : '¡JOJOJOJO!', x + 52, y + 4);
       break;
     }
     case 'staff':

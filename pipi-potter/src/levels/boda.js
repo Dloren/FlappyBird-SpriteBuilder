@@ -55,6 +55,22 @@ export default {
   player: [12, 15],
   npcs: [
     {
+      kind: 'A', role: 'friend', name: 'F6',
+      look: look({ style: 'short', hair: HAIR.black, skin: SKIN[2], shirt: '#f060a8', bowtie: '#282838' }),
+      route: [[16, 6, 4, 'left'], [19, 5, 3, 'right'], [6, 19, 3], [12, 15, 1], [16, 6, 0]],
+    },
+    {
+      kind: 'A', role: 'friend', name: 'F7',
+      look: look({ style: 'long', hair: HAIR.blond, skin: SKIN[5], body: 'dress' }),
+      route: [[15, 11, 4], [24, 11, 0], [30, 22, 5, 'down'], [24, 11, 0], [6, 12, 3, 'right']],
+    },
+    { kind: 'B', role: 'guest', behavior: 'static', at: [10, 7], dir: 'left', look: look({ style: 'bald', hair: SKIN[1], shirt: '#384868', body: 'belly' }) },
+    { kind: 'B', role: 'guest', behavior: 'static', at: [16, 3], dir: 'left', look: look({ style: 'bun', body: 'dress', shirt: '#a84868', hair: HAIR.grey }) },
+    { kind: 'B', role: 'guest', behavior: 'static', at: [2, 10], dir: 'right', look: look({ shirt: '#5a8a48', hair: HAIR.brown }) },
+    { kind: 'B', role: 'guest', behavior: 'static', at: [22, 17], dir: 'left', look: look({ style: 'long', body: 'dress', shirt: '#58a8d8', hair: HAIR.black }) },
+    { kind: 'B', role: 'guest', behavior: 'static', at: [9, 24], dir: 'up', look: look({ shirt: '#686868', hair: HAIR.grey, body: 'belly' }) },
+    { kind: 'B', role: 'kid', route: [[20, 24, 1], [30, 17, 0], [14, 20, 1]], look: look({ kid: true, style: 'bun', body: 'dress', shirt: '#f070b0', hair: HAIR.brown }) },
+    {
       kind: 'A', role: 'bride', name: 'LUCÍA', label: 'NOVIA',
       look: look({ style: 'bun', hair: HAIR.brown, skin: SKIN[0], shirt: '#fcfcfc', body: 'dress', veil: true }),
       route: [[12, 2, 5, 'down'], [14, 10, 4], [16, 17, 3, 'down'], [20, 16, 3, 'left'], [12, 2, 0]],
@@ -65,7 +81,7 @@ export default {
       route: [[13, 2, 4, 'down'], [19, 6, 3, 'right'], [29, 23, 5, 'left'], [24, 11, 0], [14, 11, 3, 'down']],
     },
     {
-      kind: 'A', role: 'partner', name: 'PAULA',
+      kind: 'A', role: 'partner', name: 'ANDREINA',
       look: look({ style: 'long', hair: HAIR.dark, skin: SKIN[1], body: 'dress', shirt: '#f060a8' }),
       route: [[8, 4, 5, 'up'], [2, 6, 4, 'up'], [12, 12, 4], [6, 17, 3, 'left'], [8, 4, 0]],
     },
@@ -104,5 +120,5 @@ export default {
     { kind: 'B', role: 'kid', behavior: 'route', route: [[5, 16, 1], [20, 19, 0], [10, 25, 1], [2, 20, 0]],
       look: look({ kid: true, shirt: '#58a8d8', hair: HAIR.blond, pants: '#303850' }) },
   ],
-  items: [['pitillo', 30, 24], ['chicle', 2, 7], ['sobras', 6, 1], ['botella', 1, 26]],
+  items: [['pitillo', 30, 24], ['pitillo', 2, 9], ['pitillo', 25, 8], ['chicle', 2, 7], ['sobras', 6, 1], ['botella', 1, 26]],
 };

@@ -106,9 +106,10 @@ class ChipAudio {
     const def = SONGS[name];
     if (!def) return;
     const tracks = {};
-    for (const k of ['lead', 'bass', 'arp', 'drums']) {
-      if (!def[k]) continue;
-      tracks[k] = def[k].join(' ').trim().split(/\s+/);
+    const src = { lead: def.leadTrack, bass: def.bassTrack, arp: def.arpTrack, drums: def.drums };
+    for (const k of Object.keys(src)) {
+      if (!src[k]) continue;
+      tracks[k] = src[k].join(' ').trim().split(/\s+/);
     }
     const len = Math.max(...Object.values(tracks).map((t) => t.length));
     this.song = { name, def, tracks, len, step: 0, next: this.ctx.currentTime + 0.08, spb: 60 / def.bpm / (def.div || 4) };
@@ -138,22 +139,55 @@ class ChipAudio {
     return n;
   }
 
+  _voice(kind) {
+    if (kind === 'p25') return { wave: this.pulse25 };
+    if (kind === 'p12') return { wave: this.pulse125 };
+    return { type: kind || 'square' };
+  }
+
   _playStep(s, i, t) {
-    const { tracks, spb } = s;
+    const { tracks, spb, def } = s;
     const mg = this.musicGain;
     const L = tracks.lead?.[i % tracks.lead.length];
-    if (L && L !== '.' && L !== '-') this.tone(freq(L), t, spb * this._noteLen(tracks.lead, i % tracks.lead.length) * 0.95, { wave: this.pulse25, vol: 0.16, dest: mg, vib: s.def.vib ? 4 : 0 });
+    if (L && L !== '.' && L !== '-') this.tone(freq(L), t, spb * this._noteLen(tracks.lead, i % tracks.lead.length) * 0.95, { ...this._voice(def.lead || 'p25'), vol: def.leadVol || 0.15, dest: mg, vib: def.vib ? 4 : 0 });
     const B = tracks.bass?.[i % tracks.bass.length];
-    if (B && B !== '.' && B !== '-') this.tone(freq(B), t, spb * this._noteLen(tracks.bass, i % tracks.bass.length) * 0.9, { type: 'triangle', vol: 0.34, dest: mg });
+    if (B && B !== '.' && B !== '-') {
+      const bt = def.bass || 'triangle';
+      const vol = def.bassVol || (bt === 'triangle' ? 0.34 : 0.16);
+      this.tone(freq(B), t, spb * this._noteLen(tracks.bass, i % tracks.bass.length) * (bt === 'sawtooth' ? 0.6 : 0.9), { ...this._voice(bt), vol, dest: mg });
+    }
     const A = tracks.arp?.[i % tracks.arp.length];
-    if (A && A !== '.' && A !== '-') this.tone(freq(A), t, spb * 0.8, { wave: this.pulse125, vol: 0.07, dest: mg });
+    if (A && A !== '.' && A !== '-') this.tone(freq(A), t, spb * 0.8, { ...this._voice(def.arp || 'p12'), vol: 0.07, dest: mg });
     const D = tracks.drums?.[i % tracks.drums.length];
     if (D && D !== '.') {
-      if (D.includes('k')) this.tone(150, t, 0.12, { type: 'sine', vol: 0.5, slide: 0.3, dest: mg });
+      if (D.includes('k')) this.tone(150, t, 0.14, { type: 'sine', vol: 0.55, slide: 0.28, dest: mg });
       if (D.includes('s')) this.noiseHit(t, 0.12, { vol: 0.22, filter: 'bandpass', f: 1800, q: 0.7, dest: mg });
       if (D.includes('h')) this.noiseHit(t, 0.04, { vol: 0.09, f: 7000, dest: mg });
-      if (D.includes('o')) this.noiseHit(t, 0.18, { vol: 0.08, f: 6000, dest: mg });
+      if (D.includes('o')) this.noiseHit(t, 0.16, { vol: 0.1, f: 6000, dest: mg });
     }
+  }
+
+  // "Voz" cómica: diente de sierra con filtro formante que se desliza
+  _blargh(t, dur, f0, f1, form0, form1, vol) {
+    const c = this.ctx;
+    const o = c.createOscillator();
+    o.type = 'sawtooth';
+    o.frequency.setValueAtTime(f0, t);
+    o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+    const l = c.createOscillator(), lg = c.createGain();
+    l.frequency.value = 18; lg.gain.value = f0 * 0.12;
+    l.connect(lg); lg.connect(o.frequency);
+    const bp = c.createBiquadFilter();
+    bp.type = 'bandpass'; bp.Q.value = 4;
+    bp.frequency.setValueAtTime(form0, t);
+    bp.frequency.exponentialRampToValueAtTime(form1, t + dur);
+    const g = c.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol, t + 0.03);
+    g.gain.setValueAtTime(vol, t + dur * 0.7);
+    g.gain.linearRampToValueAtTime(0, t + dur);
+    o.connect(bp); bp.connect(g); g.connect(this.sfxGain);
+    o.start(t); o.stop(t + dur + 0.02); l.start(t); l.stop(t + dur + 0.02);
   }
 
   // ---------- efectos ----------
@@ -162,14 +196,24 @@ class ChipAudio {
     const t = this.ctx.currentTime + 0.005;
     switch (name) {
       case 'step': this.noiseHit(t, 0.03, { vol: 0.05, filter: 'lowpass', f: 900 }); break;
-      case 'retch':
-        this.tone(220, t, 0.28, { type: 'sawtooth', vol: 0.12, slide: 0.45, vib: 30 });
-        this.noiseHit(t, 0.25, { vol: 0.08, filter: 'lowpass', f: 700 });
+      case 'retch': {
+        // "¡HUP!" de arcada, como un hipo exagerado
+        const up = 180 + Math.random() * 60;
+        this._blargh(t, 0.16, up, up * 1.5, 500, 1100, 0.5);
+        this.tone(up * 2, t + 0.02, 0.08, { type: 'square', vol: 0.05, slide: 1.4 });
         break;
+      }
       case 'puke':
-        this.noiseHit(t, 0.7, { vol: 0.35, filter: 'lowpass', f: 1400, f2: 200 });
-        this.tone(120, t, 0.5, { type: 'square', vol: 0.12, slide: 0.5, vib: 20 });
-        this.tone(90, t + 0.3, 0.3, { type: 'sine', vol: 0.3, slide: 0.6 });
+        // "BLUAAARGH" descendente + chof + gluglú
+        this._blargh(t, 0.75, 330, 95, 1100, 380, 0.6);
+        this._blargh(t + 0.05, 0.7, 250, 80, 800, 300, 0.3);
+        this.noiseHit(t + 0.15, 0.6, { vol: 0.3, filter: 'lowpass', f: 1600, f2: 250 });
+        this.noiseHit(t + 0.72, 0.18, { vol: 0.4, filter: 'lowpass', f: 900 });
+        [520, 440, 360, 300].forEach((f, i) => this.tone(f, t + 0.85 + i * 0.09, 0.07, { type: 'sine', vol: 0.3, slide: 1.8 }));
+        break;
+      case 'bark':
+        this._blargh(t, 0.12, 520, 380, 1400, 900, 0.5);
+        this._blargh(t + 0.2, 0.14, 560, 360, 1500, 800, 0.5);
         break;
       case 'splash':
         this.noiseHit(t, 0.25, { vol: 0.2, filter: 'lowpass', f: 900, f2: 300 });

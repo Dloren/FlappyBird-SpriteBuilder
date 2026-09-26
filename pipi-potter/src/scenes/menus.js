@@ -9,6 +9,7 @@ import { pick, fmtTime, clamp, rand } from '../engine/util.js';
 import { drawCharacter, pipiSpec, drawIcon, makePuddle } from '../assets/sprites.js';
 import { drawGameOverArt } from '../assets/illustrations.js';
 import { LEVELS } from '../levels/index.js';
+import { resolveLevel } from '../levels/names.js';
 import { loadScores, qualifies, addScore, lastName, saveName, fmtDate } from '../engine/storage.js';
 import { shareCanvas } from '../engine/share.js';
 import { buildShareCard } from '../ui/sharecard.js';
@@ -176,7 +177,7 @@ const RULE_PAGES = [
   },
   {
     title: 'CONTROLES',
-    text: 'CRUCETA: MOVER. A (MANTENER 2 S): POTAR. B: USAR OBJETO. START: PAUSA E INVENTARIO. SELECT: REGLAS RÁPIDAS.',
+    text: 'CRUCETA: MOVER. A (MANTENER 2 S): POTAR. B: USAR OBJETO (LOS LANZABLES SALEN HACIA DONDE MIRAS). START: PAUSA E INVENTARIO. SELECT: REGLAS RÁPIDAS.',
     draw(ctx, t) {
       ctx.fillStyle = UI.dark; ctx.fillRect(40, 30, 24, 8); ctx.fillRect(48, 22, 8, 24);
       ctx.fillStyle = UI.red; ctx.beginPath(); ctx.arc(106, 30, 6, 0, 7); ctx.fill(); ctx.beginPath(); ctx.arc(92, 38, 6, 0, 7); ctx.fill();
@@ -199,7 +200,7 @@ const RULE_PAGES = [
   },
   {
     title: 'CONOS DE VISIÓN',
-    text: 'TU GENTE LLEVA CAMISETA ROSA Y VE LO QUE HAY EN SU CONO. LOS MUROS, LOS MUEBLES ALTOS Y OTRAS PERSONAS TAPAN LA VISIÓN: ¡ESCÓNDETE DETRÁS!',
+    text: 'TU GENTE LLEVA CAMISETA ROSA Y VE LO QUE HAY EN SU CONO. MUROS, MUEBLES ALTOS Y OTRAS PERSONAS TAPAN LA VISIÓN. SI NADIE TE VE EN 30 S, SALEN A BUSCARTE. ¡Y OJO CON LOS PERROS CHIVATOS!',
     draw(ctx, t) {
       ctx.globalAlpha = 0.35; ctx.fillStyle = '#f8f0c0';
       ctx.beginPath(); ctx.moveTo(40, 34); ctx.lineTo(110, 14); ctx.lineTo(110, 54); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
@@ -210,7 +211,7 @@ const RULE_PAGES = [
   },
   {
     title: 'SOSPECHAS',
-    text: 'SI TE VEN SE LLENA "?" (-3%) Y LUEGO "!": TE PILLAN PERO TE ZAFAS (-7%). SI VEN UN CHARCO O TUS HUELLAS SE QUEDAN CON "?": SI TE ACERCAS TE HUELEN EL ALIENTO. GAME OVER.',
+    text: 'SÓLO SOSPECHAN SI TU NÁUSEA PASA DEL 50% (EL STAFF, DEL 75%). "?" (-3%) Y LUEGO "!": CORREN A POR TI. SI TE ALCANZAN, GAME OVER; SI ESCAPAS, -7%. CHARCOS Y HUELLAS LES DEJAN CON "?": NO TE ACERQUES O TE HUELEN.',
     draw(ctx, t) {
       const draw = (x, g, fill, meter, mc) => {
         ctx.fillStyle = UI.ink; ctx.fillRect(x - 5, 22, 11, 12); ctx.fillStyle = fill; ctx.fillRect(x - 4, 23, 9, 10);
@@ -339,7 +340,7 @@ export class LevelIntroScene {
   constructor(app, idx) { this.app = app; this.idx = idx; }
   enter() {
     this.t = 0;
-    this.data = LEVELS[this.idx];
+    this.data = resolveLevel(LEVELS[this.idx], this.app.run, this.idx);
     this.npcA = this.data.npcs.filter((n) => n.kind === 'A');
     audio.stopMusic();
     audio.sfx('select');
@@ -356,15 +357,14 @@ export class LevelIntroScene {
     panel(ctx, 4, 32, 152, 42);
     let y = 37;
     for (const l of wrapText(this.data.intro, 140)) { drawText(ctx, l, 10, y, UI.light); y += 7; }
-    drawText(ctx, 'QUE NO TE PILLEN:', 6, 78, UI.pink);
+    drawText(ctx, 'QUE NO TE PILLEN:', 6, 77, UI.pink);
     this.npcA.forEach((n, i) => {
       const col = i % 4, row = Math.floor(i / 4);
-      const x = 6 + col * 38, yy = 86 + row * 22;
-      drawCharacter(ctx, n.look, 'down', 0, x, yy);
-      drawText(ctx, n.name, x + 17, yy + 4, UI.light);
-      drawText(ctx, (n.label || (n.look.body === 'dress' ? ROLE_LABEL_F[n.role] : ROLE_LABEL[n.role]) || '').slice(0, 6), x + 17, yy + 11, UI.grey);
+      const cx = 22 + col * 39, yy = 84 + row * 25;
+      drawCharacter(ctx, n.look, 'down', 0, cx - 8, yy);
+      drawTextCentered(ctx, n.name, cx, yy + 17, n.role === 'friend' ? UI.light : UI.yellow);
     });
-    if (Math.floor(this.t * 2) % 2) drawTextCentered(ctx, 'PULSA A: ¡A POTAR!', 80, 134, UI.yellow);
+    if (Math.floor(this.t * 2) % 2) drawTextCentered(ctx, 'PULSA A: ¡A POTAR!', 80, 137, UI.yellow);
   }
 }
 const ROLE_LABEL = { friend: 'AMIGO', partner: 'NOVIA', family: 'FAMILIA', inlaw: 'SUEGRO', groom: 'NOVIO', bride: 'NOVIA' };

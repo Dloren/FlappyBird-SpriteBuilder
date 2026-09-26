@@ -56,7 +56,21 @@ export default {
   player: [26, 12],
   npcs: [
     {
-      kind: 'A', role: 'partner', name: 'PAULA',
+      kind: 'A', role: 'family', name: 'PEPE', label: 'TÍO',
+      look: look({ style: 'short', hair: HAIR.grey, skin: SKIN[2], body: 'belly', mustache: true, glasses: true }),
+      route: [[28, 5, 5, 'up'], [22, 6, 0], [4, 2, 4, 'up'], [7, 12, 4, 'down'], [28, 11, 0]],
+    },
+    {
+      kind: 'A', role: 'family', name: 'LORE', label: 'PRIMA',
+      look: look({ style: 'bun', hair: HAIR.red, skin: SKIN[0], body: 'dress' }),
+      route: [[31, 15, 4, 'left'], [11, 22, 3, 'left'], [29, 24, 3, 'up'], [20, 21, 2]],
+    },
+    { kind: 'B', role: 'kid', route: [[3, 17, 0], [17, 15, 1], [12, 25, 0]], look: look({ kid: true, shirt: '#e84848', hair: HAIR.red }) },
+    { kind: 'B', role: 'neighbor', behavior: 'static', at: [24, 20], dir: 'up', look: look({ style: 'cap', cap: '#4898d8', shirt: '#f8f8f8', hair: HAIR.brown }) },
+    { kind: 'B', role: 'neighbor', behavior: 'static', at: [13, 8], dir: 'down', look: look({ style: 'long', body: 'dress', shirt: '#a858a8', hair: HAIR.black }) },
+    { kind: 'B', role: 'neighbor', behavior: 'static', at: [2, 13], dir: 'right', look: look({ shirt: '#d8a838', hair: HAIR.grey, body: 'belly' }) },
+    {
+      kind: 'A', role: 'partner', name: 'ANDREINA',
       look: look({ style: 'long', hair: HAIR.dark, skin: SKIN[1], body: 'dress' }),
       route: [[5, 14, 5, 'up'], [12, 2, 4, 'up'], [10, 6, 0], [18, 3, 4, 'up'], [10, 12, 0], [8, 14, 3, 'up']],
     },
@@ -66,7 +80,7 @@ export default {
       route: [[16, 14, 6, 'up'], [26, 7, 5, 'up'], [19, 14, 2, 'down'], [16, 12, 3, 'down']],
     },
     {
-      kind: 'A', role: 'inlaw', name: 'ROSA', label: 'SUEGRA',
+      kind: 'A', role: 'inlaw', name: 'MERCHE', label: 'SUEGRA',
       look: look({ style: 'bun', hair: HAIR.grey, skin: SKIN[0], body: 'dress', glasses: true }),
       route: [[10, 2, 6, 'up'], [3, 2, 3, 'left'], [9, 12, 2, 'down'], [4, 12, 5, 'down'], [12, 7, 0]],
     },
@@ -93,5 +107,5 @@ export default {
     { kind: 'B', role: 'dog', name: 'TOBY', route: [[20, 13, 2], [9, 16, 1], [15, 24, 2], [27, 22, 1], [28, 12, 2]],
       look: { dog: true, outline: '#2a1c14', fur: '#c88848', spot: '#f0e0c8' } },
   ],
-  items: [['chicle', 30, 23], ['pitillo', 31, 2], ['botella', 1, 26]],
+  items: [['chicle', 30, 23], ['pitillo', 31, 2], ['pitillo', 3, 26], ['pitillo', 24, 9], ['botella', 1, 26]],
 };

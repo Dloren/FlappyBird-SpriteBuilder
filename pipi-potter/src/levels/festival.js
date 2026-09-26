@@ -56,6 +56,23 @@ export default {
   player: [18, 14],
   npcs: [
     {
+      kind: 'A', role: 'friend', name: 'F5',
+      look: look({ style: 'long', hair: HAIR.pink, skin: SKIN[0], body: 'dress' }),
+      route: [[27, 12, 3, 'right'], [29, 20, 4, 'up'], [18, 19, 2], [22, 11, 3, 'up']],
+    },
+    {
+      kind: 'A', role: 'friend', name: 'F6',
+      look: look({ style: 'short', hair: HAIR.brown, skin: SKIN[3], beard: true }),
+      route: [[8, 8, 3, 'left'], [10, 18, 3, 'up'], [2, 13, 2], [9, 4, 3, 'right']],
+    },
+    ...[[14, 6], [20, 10], [25, 8], [15, 10]].map(([x, y], i) => ({
+      kind: 'B', role: 'crowd', behavior: 'dance', at: [x, y], dir: 'up',
+      look: look({ style: ['cap', 'long', 'short', 'bun'][i], body: i % 2 ? 'dress' : 'normal', cap: '#f8c838', shirt: ['#e84830', '#38c8e8', '#f8f8f8', '#8848e8'][i], hair: [HAIR.black, HAIR.blond, HAIR.red, HAIR.brown][i], skin: SKIN[(i + 1) % 5] }),
+    })),
+    { kind: 'B', role: 'crowd', behavior: 'static', at: [28, 12], dir: 'right', look: look({ style: 'long', body: 'dress', shirt: '#f8c838', hair: HAIR.red }) },
+    { kind: 'B', role: 'crowd', behavior: 'static', at: [27, 17], dir: 'right', look: look({ shirt: '#303030', hair: HAIR.black, body: 'belly' }) },
+    { kind: 'B', role: 'dog', name: 'KIRA', route: [[5, 5, 2], [9, 13, 1], [20, 16, 2], [32, 14, 1], [33, 4, 2]], look: { dog: true, outline: '#2a1c14', fur: '#e8e0d0', spot: '#303030' } },
+    {
       kind: 'A', role: 'friend', name: 'JAVI',
       look: look({ hair: HAIR.black, skin: SKIN[2], beard: true, style: 'cap', cap: '#e8e8e8' }),
       route: [[14, 8, 4, 'up'], [7, 9, 3, 'left'], [6, 18, 3, 'up'], [11, 17, 0], [18, 11, 3, 'up']],
@@ -71,7 +88,7 @@ export default {
       route: [[17, 5, 4, 'up'], [24, 5, 0], [9, 18, 3, 'up'], [11, 15, 0], [4, 12, 2, 'left'], [15, 5, 2, 'up']],
     },
     {
-      kind: 'A', role: 'partner', name: 'PAULA',
+      kind: 'A', role: 'partner', name: 'ANDREINA',
       look: look({ style: 'long', hair: HAIR.dark, skin: SKIN[1], body: 'dress' }),
       route: [[30, 20, 5, 'left'], [22, 16, 2], [27, 9, 3, 'right'], [11, 12, 3, 'down'], [30, 16, 2, 'left']],
     },
@@ -106,5 +123,5 @@ export default {
     { kind: 'B', role: 'crowd', behavior: 'static', at: [30, 15], dir: 'down', look: look({ style: 'bun', shirt: '#f070b0', hair: HAIR.blond, body: 'dress' }) },
     { kind: 'B', role: 'crowd', route: [[33, 5, 3], [33, 25, 3], [27, 25, 2]], look: look({ style: 'cap', cap: '#58c048', shirt: '#303030' }) },
   ],
-  items: [['pitillo', 33, 2], ['sobras', 33, 9], ['botella', 12, 23], ['mechero', 1, 15]],
+  items: [['pitillo', 33, 2], ['pitillo', 3, 14], ['pitillo', 30, 25], ['pitillo', 14, 15], ['sobras', 33, 9], ['botella', 12, 23], ['mechero', 1, 15]],
 };

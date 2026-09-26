@@ -9,6 +9,7 @@ import { drawText, drawTextCentered, textWidth, wrapText } from '../engine/font.
 import { clamp, lerp, pick, rand, dist } from '../engine/util.js';
 import { Level } from '../levels/level.js';
 import { LEVELS } from '../levels/index.js';
+import { resolveLevel } from '../levels/names.js';
 import { renderMap, drawAnimatedTile, isAnimated } from '../assets/tiles.js';
 import { drawIcon } from '../assets/sprites.js';
 import { Player } from '../entities/player.js';
@@ -22,8 +23,8 @@ const ITEM_DESC = {
   chicle: '30 S SIN SOSPECHAS Y QUITA LOS "?"',
   pitillo: 'PAUSA LA NÁUSEA Y CREA HUMO',
   sobras: '+PUNTOS, PERO +20% NÁUSEA',
-  mechero: 'LÁNZALO PARA HACER RUIDO',
-  botella: 'LÁNZALA: MUCHO RUIDO',
+  mechero: 'SE LANZA HACIA DELANTE: RUIDO',
+  botella: 'SE LANZA HACIA DELANTE: MUCHO RUIDO',
 };
 export { ITEM_NAMES, ITEM_DESC };
 
@@ -31,7 +32,7 @@ export class PlayScene {
   constructor(app, levelIndex) {
     this.app = app;
     this.levelIndex = levelIndex;
-    this.data = LEVELS[levelIndex];
+    this.data = resolveLevel(LEVELS[levelIndex], app.run, levelIndex);
     this.diff = DIFFICULTY[levelIndex] || DIFFICULTY[DIFFICULTY.length - 1];
   }
 
@@ -58,6 +59,8 @@ export class PlayScene {
     this.decals = [];
     this.floaters = [];
     this.reactedThisPuke = new Set();
+    this.unseenT = 0;
+    this.hunters = [];
     this.time = 0;
     this.stats = { time: 0, pukes: 0, suspicions: 0, escapes: 0, sobras: 0, items: 0 };
     this.mode = 'play'; // play | paused | rules | caught | cleared
@@ -65,7 +68,6 @@ export class PlayScene {
     this.cam = { x: 0, y: 0 };
     this.snapCamera();
     this.retchT = 0;
-    this.aim = null;
     this.pauseSel = 0;
     this.message = { text: this.data.name, t: 2 };
     audio.playMusic(this.data.music);
@@ -73,6 +75,38 @@ export class PlayScene {
 
   // ----------------- API usada por las entidades -----------------
   sfx(n) { audio.sfx(n); }
+
+  // Algún amigo ha visto a Pipi: se reinicia el contador de "¿dónde está Pipi?"
+  friendSawPlayer() { this.unseenT = 0; }
+
+  endHunt(npc) {
+    this.hunters = this.hunters.filter((h) => h !== npc);
+    if (!this.hunters.length) this.unseenT = 0;
+  }
+
+  nearestFriend(x, y) {
+    let best = null, bd = Infinity;
+    for (const n of this.npcs) {
+      if (n.kind !== 'A' || n.state === S.CHASE) continue;
+      const d = dist(n.x, n.y, x, y);
+      if (d < bd) { bd = d; best = n; }
+    }
+    return best;
+  }
+
+  updateHunt(dt) {
+    const D = CONFIG.detection;
+    this.unseenT += dt;
+    if (this.unseenT < D.huntAfter || this.hunters.length) return;
+    const p = this.player;
+    const free = this.npcs.filter((n) => n.kind === 'A' && (n.state === S.ROUTINE || n.state === S.RETURN))
+      .sort((a, b) => dist(a.x, a.y, p.x, p.y) - dist(b.x, b.y, p.x, p.y)).slice(0, D.hunters);
+    if (!free.length) return;
+    free.forEach((n) => n.startHunt());
+    this.hunters = free;
+    this.message = { text: 'TUS AMIGOS TE BUSCAN', t: 2 };
+    audio.sfx('suspect');
+  }
   nearView(x, y, m) {
     return x > this.cam.x - m && x < this.cam.x + SCREEN_W + m && y > this.cam.y - m && y < this.cam.y + VIEW_H + m + 16;
   }
@@ -205,12 +239,9 @@ export class PlayScene {
         audio.sfx('eat');
         break;
       case 'mechero':
-      case 'botella': {
-        const f = p.facingVec();
-        p.state = 'aiming';
-        this.aim = { type: it, x: p.x + f.x * 48, y: p.y - 4 + f.y * 48, moved: false };
+      case 'botella':
+        this.throwItem(it);
         break;
-      }
       default: break;
     }
     this.autoEquip();
@@ -232,23 +263,15 @@ export class PlayScene {
     }
   }
 
-  throwItem(tx, ty, forward) {
+  // Lanza el objeto hacia donde mira Pipi; cae a unos 5 tiles o al chocar
+  throwItem(type) {
     const p = this.player;
-    const a = this.aim;
-    const cfg = CONFIG.items[a.type];
-    p.inventory[a.type]--;
-    let target = { x: tx, y: ty };
-    if (forward) {
-      const f = p.facingVec();
-      target = { x: p.x + f.x * cfg.range, y: p.y - 4 + f.y * cfg.range };
-    }
-    const dx = target.x - p.x, dy = target.y - p.y;
-    if (Math.abs(dx) > Math.abs(dy)) p.dir = dx > 0 ? 'right' : 'left'; else p.dir = dy > 0 ? 'down' : 'up';
-    this.projectiles.push(new Projectile(a.type, p.x, p.y - 4, target.x, target.y, cfg.range, cfg.speed));
+    const cfg = CONFIG.items[type];
+    p.inventory[type]--;
+    const f = p.facingVec();
+    const target = { x: p.x + f.x * cfg.range, y: p.y - 4 + f.y * cfg.range };
+    this.projectiles.push(new Projectile(type, p.x, p.y - 4, target.x, target.y, cfg.range, cfg.speed));
     audio.sfx('throw');
-    p.state = 'free';
-    this.aim = null;
-    this.autoEquip();
   }
 
   onProjectileLand(pr) {
@@ -288,32 +311,7 @@ export class PlayScene {
     if (input.pressed.start) { this.mode = 'paused'; this.pauseSel = 0; audio.sfx('select'); return; }
     if (input.pressed.select) { this.mode = 'rules'; audio.sfx('select'); return; }
 
-    let scale = 1;
-    if (this.player.state === 'aiming') {
-      scale = CONFIG.items.aimTimeScale;
-      this.updateAim(dt);
-    }
-    this.updateWorld(dt * scale, true);
-  }
-
-  updateAim(dt) {
-    const a = this.aim, p = this.player;
-    const ax = input.axis();
-    if (ax.x || ax.y) { a.x += ax.x * 110 * dt; a.y += ax.y * 110 * dt; a.moved = true; }
-    // limitar al alcance
-    const cfg = CONFIG.items[a.type];
-    const dx = a.x - p.x, dy = a.y - (p.y - 4), d = Math.hypot(dx, dy);
-    if (d > cfg.range) { a.x = p.x + (dx / d) * cfg.range; a.y = p.y - 4 + (dy / d) * cfg.range; }
-    const tap = input.consumeTap();
-    if (tap && tap.y > HUD_H) {
-      this.throwItem(tap.x + this.cam.x, tap.y - HUD_H + this.cam.y, false);
-      return;
-    }
-    if (input.pressed.b) { this.throwItem(a.x, a.y, !a.moved); return; }
-    if (input.pressed.a) {
-      // cancelar: devuelve el objeto
-      p.state = 'free'; this.aim = null; p.needRelease = true; audio.sfx('back');
-    }
+    this.updateWorld(dt, true);
   }
 
   updateWorld(dt, controls) {
@@ -321,7 +319,10 @@ export class PlayScene {
     this.frame = (this.frame || 0) + 1;
     const p = this.player;
     if (controls) this.stats.time += dt;
+    this.chased = this.npcs.some((n) => n.state === S.CHASE);
+    p.speedMul = this.chased ? CONFIG.player.chaseBoost : 1;
     if (controls) p.update(dt, this);
+    if (controls) this.updateHunt(dt);
     if (this.mode === 'caught') return;
 
     // pisar charco → rastro
@@ -401,7 +402,10 @@ export class PlayScene {
     const sameKind = this.npcs.filter((o) => o !== n && o.kind === n.kind && ROLE_TYPE[o.role] === type);
     return {
       type, reason: this.caughtReason, catcherSpec: n.spec, catcherName: n.name, role: n.role,
-      extraSpecs: sameKind.slice(0, 1).map((o) => o.spec), levelIndex: this.levelIndex, levelName: this.data.name,
+      extraSpecs: sameKind.slice(0, 1).map((o) => o.spec),
+      onScreen: this.npcs.filter((o) => o !== n && o.role !== 'dog' && this.nearView(o.x, o.y, 0))
+        .map((o) => ({ spec: o.spec, friend: o.kind === 'A' })),
+      levelIndex: this.levelIndex, levelName: this.data.name,
       stats: this.stats,
     };
   }
@@ -446,7 +450,6 @@ export class PlayScene {
       ctx.globalAlpha = 1;
     }
     for (const n of this.npcs) if (n.speech) this.drawSpeech(ctx, n, cam);
-    if (this.aim) this.drawAim(ctx, cam);
     ctx.restore();
 
     drawHUD(ctx, this);
@@ -520,7 +523,7 @@ export class PlayScene {
       ctx.fillStyle = UI.orange;
       ctx.fillRect(x - 1, y + 6, 3, 1); ctx.fillRect(x, y + 5, 1, 3);
     }
-    if (n.kind !== 'A') return;
+    if (n.kind !== 'A' && !n.worker) return;
     const bubble = (fill, glyph, glyphCol, meter, meterCol) => {
       ctx.fillStyle = UI.ink; ctx.fillRect(x - 4, y - 2, 9, 10);
       ctx.fillStyle = fill; ctx.fillRect(x - 3, y - 1, 7, 8);
@@ -538,7 +541,8 @@ export class PlayScene {
         if (n.alert > 0) bubble(UI.yellow, '!', UI.ink, n.alert, UI.red);
         else if (Math.floor(this.time * 4) % 2 || n.state === S.SEARCH) bubble(UI.yellow, '?', UI.ink);
         break;
-      case S.ALERT: bubble(UI.red, '!', UI.light); break;
+      case S.CHASE: bubble(UI.red, '!', UI.light); break;
+      case S.HUNT: if (Math.floor(this.time * 2) % 2) bubble(UI.pink, '?', UI.ink); break;
       case S.DISTRACTED: bubble(UI.light, '?', UI.grey); break;
       default:
         if (n.marked) bubble(UI.yellow, '?', UI.red);
@@ -554,6 +558,7 @@ export class PlayScene {
       ctx.fillStyle = p.isPuking ? UI.green : p.state === 'smoking' ? UI.grey : UI.yellow;
       ctx.fillRect(x - 8, y - 20, Math.round(16 * k), 2);
     }
+    if (this.chased && Math.floor(this.time * 4) % 2) drawText(ctx, '¡CORRE!', x - 13, y - 30, UI.red, 1, UI.ink);
     if (this.playerHidden()) {
       ctx.fillStyle = UI.cyan;
       if (Math.floor(this.time * 3) % 2) drawText(ctx, 'OCULTO', x - 11, y - 28, UI.cyan);
@@ -578,22 +583,6 @@ export class PlayScene {
     lines.forEach((l, i) => drawText(ctx, l, x + 3, y + 3 + i * 7, UI.ink));
   }
 
-  drawAim(ctx, cam) {
-    const a = this.aim, p = this.player;
-    const x = Math.round(a.x - cam.x), y = Math.round(a.y - cam.y);
-    ctx.fillStyle = 'rgba(20,12,28,0.25)';
-    ctx.fillRect(0, 0, SCREEN_W, VIEW_H);
-    // línea punteada
-    const px = p.x - cam.x, py = p.y - 4 - cam.y;
-    ctx.fillStyle = UI.light;
-    for (let i = 1; i < 10; i++) { const t = i / 10; if (i % 2) ctx.fillRect(Math.round(px + (x - px) * t), Math.round(py + (y - py) * t), 1, 1); }
-    const blink = Math.floor(this.time * 8) % 2;
-    ctx.fillStyle = blink ? UI.red : UI.yellow;
-    ctx.fillRect(x - 4, y, 3, 1); ctx.fillRect(x + 2, y, 3, 1); ctx.fillRect(x, y - 4, 1, 3); ctx.fillRect(x, y + 2, 1, 3);
-    panel(ctx, 4, VIEW_H - 18, 152, 15);
-    drawTextCentered(ctx, 'TOCA DESTINO · B LANZA · A CANCELA', 80, VIEW_H - 13, UI.light);
-  }
-
   drawCaught(ctx, cam) {
     const n = this.catcher;
     const flash = this.modeT < 0.3 && Math.floor(this.modeT * 20) % 2;
@@ -606,7 +595,7 @@ export class PlayScene {
     ctx.fillStyle = UI.red; ctx.fillRect(x - 6, y - 3, 12, 16);
     drawText(ctx, '!', x - 2, y, UI.light, s);
     panel(ctx, 24, 116, 112, 15);
-    const txt = this.caughtReason === 'breath' ? '¡TE HA OLIDO EL ALIENTO!' : this.caughtReason === 'staff' ? '¡TE HAN VISTO POTAR!' : '¡TE HAN PILLADO!';
+    const txt = this.caughtReason === 'breath' ? '¡TE HA OLIDO EL ALIENTO!' : this.caughtReason === 'chase' ? '¡TE HAN ALCANZADO!' : this.caughtReason === 'staff' ? '¡TE HAN PILLADO!' : '¡TE HAN VISTO POTAR!';
     drawTextCentered(ctx, txt, 80, 121, UI.yellow);
   }
 
@@ -653,11 +642,13 @@ export class PlayScene {
     const lines = [
       ['·', 'POTA 3 VECES SIN QUE TE VEAN.'],
       ['·', 'MANTÉN A PARA POTAR (NÁUSEA +50%).'],
+      ['·', 'SOSPECHAN SI TU NÁUSEA PASA DEL 50% (STAFF: 75%).'],
+      ['·', 'CON "!" CORREN A POR TI: SI TE ALCANZAN, GAME OVER.'],
       ['·', 'AL 100% POTAS SÍ O SÍ.'],
       ['·', 'CONOS = VISIÓN DE TU GENTE (ROSA).'],
       ['·', 'SI TE VEN POTAR: GAME OVER.'],
       ['·', 'STAFF: NO POTES EN SU ZONA.'],
-      ['·', 'ESCÓNDETE TRAS LA GENTE Y MUROS.'],
+      ['·', 'SI NO TE VEN EN 30 S, SALEN A BUSCARTE.'],
       ['·', 'CON "?" TE HUELEN: ¡NO TE ACERQUES!'],
       ['·', 'B: USAR OBJETO. START: INVENTARIO.'],
     ];

@@ -17,6 +17,7 @@ export const CONFIG = {
     speed: 52,                 // px/s andando
     hitHalfW: 4, hitHalfH: 3,  // caja de colisión (pies)
     startItems: { chicle: 1 },
+    chaseBoost: 1.25,          // Pipi corre un poco más si alguien le persigue
   },
 
   nausea: {
@@ -61,16 +62,25 @@ export const CONFIG = {
     ignoreAfterCatch: 5,       // tras una pillada zafada el NPC le ignora
     breathDistance: 13,        // "pegado a él" para oler el aliento
     npcBReactCooldown: 3,
+    nauseaSuspicion: 0.5,      // NPC-A sólo sospechan si la náusea supera esto
+    staffNauseaSuspicion: 0.75,// el staff, a partir de esto
+    huntAfter: 30,             // s sin que ningún amigo te vea → salen a buscarte
+    huntDuration: 25,          // lo que dura una batida
+    huntRepath: 3,
+    hunters: 2,                // cuántos salen a buscarte
+    chaseSpeedMul: 1.0,        // al correr ("!") van a la velocidad normal de Pipi
+    chaseMax: 15,              // se cansan de perseguir
+    chaseGiveUp: 3,            // s sin verte antes de rendirse
+    catchDistance: 10,         // si llegan a esta distancia, te pillan
   },
 
   items: {
     chicle: { duration: 30 },
     pitillo: { smokeTime: 2.5, pauseNausea: 10, cloudTime: 8, cloudRadius: 22 },
     sobras: { eatTime: 1.4, points: 400, nausea: 0.20 },
-    mechero: { range: 110, speed: 170, noiseRadius: 70 },
-    botella: { range: 110, speed: 160, noiseRadius: 96 },
+    mechero: { range: 80, speed: 150, noiseRadius: 70 },  // 5 tiles hacia delante
+    botella: { range: 80, speed: 140, noiseRadius: 96 },
     distractTime: 2.5,         // lo que se quedan mirando el punto del ruido
-    aimTimeScale: 0.35,        // cámara lenta mientras apuntas
   },
 
   score: {
@@ -83,7 +93,7 @@ export const CONFIG = {
     victoryBonus: 5000,
   },
 
-  npcSpeed: { a: 30, b: 24, search: 40 },
+  npcSpeed: { a: 30, b: 24, search: 40, dog: 50 },
 };
 
 // Dificultad por nivel (multiplicadores)

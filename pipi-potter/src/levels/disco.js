@@ -55,6 +55,24 @@ export default {
   ],
   player: [16, 14],
   npcs: [
+    // ---- NPC-A añadidos ----
+    {
+      kind: 'A', role: 'friend', name: 'F4',
+      look: look({ style: 'bun', hair: HAIR.black, skin: SKIN[3], body: 'dress' }),
+      route: [[24, 2, 4, 'up'], [21, 5, 0], [23, 15, 4, 'right'], [19, 10, 3, 'left'], [21, 5, 0]],
+    },
+    {
+      kind: 'A', role: 'friend', name: 'F5',
+      look: look({ style: 'short', hair: HAIR.red, skin: SKIN[0], beard: true, body: 'belly' }),
+      route: [[16, 15, 2], [15, 17, 0], [4, 19, 4, 'left'], [3, 21, 3, 'down'], [10, 18, 2], [16, 13, 3, 'up']],
+    },
+    // ---- NPC-B añadidos ----
+    { kind: 'B', role: 'crowd', behavior: 'dance', at: [12, 9], look: look({ style: 'long', body: 'dress', shirt: '#48e878', hair: HAIR.red }) },
+    { kind: 'B', role: 'crowd', behavior: 'dance', at: [17, 8], look: look({ shirt: '#f8f8f8', hair: HAIR.black, skin: SKIN[4] }) },
+    { kind: 'B', role: 'crowd', behavior: 'static', at: [7, 8], dir: 'left', look: look({ style: 'cap', cap: '#48287a', shirt: '#303030' }) },
+    { kind: 'B', role: 'crowd', behavior: 'static', at: [7, 12], dir: 'left', look: look({ style: 'long', body: 'dress', shirt: '#e8e030', hair: HAIR.blond }) },
+    { kind: 'B', role: 'crowd', behavior: 'static', at: [21, 18], dir: 'left', look: look({ shirt: '#4878d8', hair: HAIR.grey }) },
+    { kind: 'B', role: 'crowd', route: [[2, 17, 2], [27, 17, 2]], look: look({ style: 'bun', body: 'dress', shirt: '#a0a0a0', hair: HAIR.brown }) },
     // ---- NPC-A: el grupo de amigos ----
     {
       kind: 'A', role: 'friend', name: 'LAURA',
@@ -99,6 +117,6 @@ export default {
     { kind: 'B', role: 'crowd', behavior: 'static', at: [7, 18], dir: 'left', look: look({ style: 'long', shirt: '#f8f8f8', hair: HAIR.black, skin: SKIN[3], body: 'dress' }) },
   ],
   items: [
-    ['pitillo', 27, 20], ['sobras', 13, 2], ['mechero', 28, 15], ['botella', 2, 23], ['chicle', 27, 3],
+    ['pitillo', 27, 20], ['pitillo', 22, 13], ['pitillo', 27, 17], ['pitillo', 9, 2], ['sobras', 13, 2], ['mechero', 28, 15], ['botella', 2, 23], ['chicle', 27, 3],
   ],
 };

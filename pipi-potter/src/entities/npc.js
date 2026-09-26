@@ -2,6 +2,7 @@ import { CONFIG, TILE } from '../config.js';
 import { findPath, tileCenter } from '../engine/path.js';
 import { canSee, conePolygon } from '../engine/vision.js';
 import { angleDiff, angleToDir, DIR_ANGLE, dist, pick, rand } from '../engine/util.js';
+import { vibrate } from '../engine/input.js';
 import { characterSheet } from '../assets/sprites.js';
 
 const DIRS = ['down', 'up', 'left', 'right'];
@@ -10,7 +11,7 @@ const dirAngle = (d) => DIR_ANGLE[DIRS.indexOf(d)];
 // Estados de NPC-A
 export const S = {
   ROUTINE: 'routine', SUSPICIOUS: 'suspicious', SEARCH: 'search', ALERT: 'alert',
-  INVESTIGATE: 'investigate', DISTRACTED: 'distracted', RETURN: 'return',
+  INVESTIGATE: 'investigate', DISTRACTED: 'distracted', RETURN: 'return', HUNT: 'hunt', CHASE: 'chase',
 };
 
 export class NPC {
@@ -69,6 +70,7 @@ export class NPC {
   }
 
   planTo(p) {
+    if (!p) { this.path = []; this.pathIdx = 0; return; }
     const sx = Math.floor(this.x / TILE), sy = Math.floor(this.y / TILE);
     const tx = p.tx ?? Math.floor(p.x / TILE), ty = p.ty ?? Math.floor(p.y / TILE);
     this.path = findPath(this.level, sx, sy, tx, ty) || [];
@@ -169,27 +171,46 @@ export class NPC {
     return this._occ;
   }
 
-  // ----------------- NPC-A -----------------
+  // ----------------- NPC-A (y staff) -----------------
+  // El staff (camareros, porteros, seguridad, municipales) usa la misma
+  // máquina de estados pero sólo vigila su zona y sospecha a partir del 75 %.
+  get isStaff() { return this.kind !== 'A' && this.worker; }
+
+  staffCares(P) {
+    // zona de trabajo ampliada 1 tile
+    const tx = Math.floor(P.x / TILE), ty = Math.floor(P.y / TILE);
+    return this.zones.some(([x, y, w, h]) => tx >= x - 1 && ty >= y - 1 && tx < x + w + 1 && ty < y + h + 1);
+  }
+
   updateA(dt, game) {
     const P = game.player;
     const D = CONFIG.detection;
+    const staff = this.isStaff;
     if (this.ignoreT > 0) this.ignoreT -= dt;
     this.stateT += dt;
     const visible = !game.playerHidden() && this.sees(game, P.x, P.cy);
     const d = dist(this.x, this.y, P.x, P.y);
     const immune = P.chicleT > 0;
+    if (visible && !staff) game.friendSawPlayer(this);
 
-    // 1) Pillado potando = GAME OVER
-    if (P.isPuking && visible) { game.caught(this, 'puke'); return; }
+    // 1) Pillado potando
+    if (P.isPuking && visible) {
+      if (!staff) { game.caught(this, 'puke'); return; }
+      if (this.inZone(P.x, P.y)) { game.caught(this, 'staff'); return; }
+      this.reactToPuke(game, P);
+    }
 
     // 2) Aliento: NPC marcado y Pipi pegado a él
-    if (this.marked && d < D.breathDistance) {
+    if (!staff && this.marked && d < D.breathDistance) {
       if (immune) { this.marked = false; this.say(pick(['¡QUÉ ALIENTO A FRESA!', 'HUELES A CHICLE...', 'MMM, MENTA.'])); game.sfx('pickup'); }
       else { game.caught(this, 'breath'); return; }
     }
-    if (this.marked && immune && d < 22) { this.marked = false; this.say('AH, NADA...'); }
+    if (!staff && this.marked && immune && d < 22) { this.marked = false; this.say('AH, NADA...'); }
 
-    const canNotice = visible && !immune && this.ignoreT <= 0;
+    // Sólo sospechan si Pipi tiene mala cara (náusea alta)
+    const threshold = staff ? D.staffNauseaSuspicion : D.nauseaSuspicion;
+    const looksBad = P.nausea >= threshold || P.isPuking;
+    const canNotice = visible && looksBad && !immune && this.ignoreT <= 0 && (!staff || this.staffCares(P));
     const prox = 1.6 - Math.min(1, d / this.coneRange);
     const rateS = (prox / D.suspicionFill) * game.diff.suspicion;
     const rateA = (prox / D.alertFill) * game.diff.suspicion;
@@ -197,19 +218,27 @@ export class NPC {
     switch (this.state) {
       case S.ROUTINE:
       case S.RETURN:
-      case S.DISTRACTED: {
+      case S.DISTRACTED:
+      case S.HUNT: {
         if (canNotice) {
+          if (this.state === S.HUNT) game.endHunt(this);
           this.state = S.SUSPICIOUS; this.stateT = 0; this.suspicion = Math.max(this.suspicion, 0.05);
           game.sfx('suspect');
           break;
         }
+        if (this.state === S.HUNT && visible) {
+          // le han encontrado y tiene buena cara: todo en orden
+          this.say(pick(['¡AHÍ ESTÁS, PIPI!', '¿DÓNDE TE METÍAS?', '¡PIPI! TE ESTÁBAMOS BUSCANDO']), 2);
+          game.endHunt(this);
+          this.resumeRoutine();
+          break;
+        }
         this.suspicion = Math.max(0, this.suspicion - D.decay * dt);
         // ¿ve un charco o un rastro?
-        const clue = game.findClue(this);
+        const clue = staff ? null : game.findClue(this);
         if (clue) {
-          this.state = S.INVESTIGATE; this.stateT = 0; this.target = clue; this.lookT = 0;
-          this.planTo({ x: clue.x, y: clue.y - 2 });
-          this.say(clue.kind === 'puddle' ? pick(['¿QUÉ ES ESO?', '¿ESO ES... POTA?', 'PUAJ, ¿Y ESTO?']) : '¿HUELLAS?');
+          if (this.state === S.HUNT) game.endHunt(this);
+          this.investigateAt(clue.x, clue.y, clue.kind === 'puddle' ? pick(['¿QUÉ ES ESO?', '¿ESO ES... POTA?', 'PUAJ, ¿Y ESTO?']) : '¿HUELLAS?');
           game.onSuspicion(this, 'clue');
           game.sfx('suspect');
           break;
@@ -229,6 +258,16 @@ export class NPC {
             this.lookAround(dt);
             if (this.stateT > this.distractEnd) this.resumeRoutine();
           }
+        } else if (this.state === S.HUNT) {
+          // salen a buscar a Pipi por donde anda (aproximadamente)
+          this.huntRepath -= dt;
+          if (this.huntRepath <= 0) {
+            this.huntRepath = D.huntRepath;
+            this.planTo({ x: P.x + rand(-24, 24), y: P.y + rand(-24, 24) });
+          }
+          if (this.path && this.pathIdx < this.path.length) this.followPath(dt, CONFIG.npcSpeed.search);
+          else { this.moving = false; this.lookAround(dt); }
+          if (this.stateT > D.huntDuration) { game.endHunt(this); this.resumeRoutine(); }
         }
         break;
       }
@@ -242,7 +281,7 @@ export class NPC {
             this.suspicion = 1;
             this.state = S.SEARCH; this.stateT = 0; this.alert = 0; this.lookT = 0; this.searchPlanned = false; this.path = null;
             game.onSuspicion(this, 'seen');
-            this.say(pick(['¿PIPI?', '¿PIPI, ERES TÚ?', 'EH... ¿PIPI?']), 1.6);
+            this.say(staff ? pick(['OYE, TÚ...', '¿ESTÁS BIEN, CHAVAL?']) : pick(['¿PIPI?', '¿PIPI, ERES TÚ?', 'EH... ¿PIPI?']), 1.6);
           }
         } else {
           this.suspicion -= D.decay * dt;
@@ -263,11 +302,7 @@ export class NPC {
             this.chaseRepath -= dt;
             this.followPath(dt, CONFIG.npcSpeed.search * 0.6);
           } else this.moving = false;
-          if (this.alert >= 1) {
-            this.state = S.ALERT; this.stateT = 0; this.moving = false;
-            game.onEscape(this);
-            this.say(pick(['¿ESTÁS BIEN? TIENES MALA CARA', 'TÍO, ESTÁS BLANCO', '¿TE ENCUENTRAS BIEN?', 'VAYA OJERAS...']), 2.5);
-          }
+          if (this.alert >= 1) this.startChase(game);
           break;
         }
         this.alert = Math.max(0, this.alert - D.decay * 0.5 * dt);
@@ -281,17 +316,32 @@ export class NPC {
           this.lookT += dt;
           const limit = this.state === S.INVESTIGATE ? D.searchTime : D.lookAroundTime;
           if (this.lookT > limit) {
-            if (this.state === S.INVESTIGATE) { this.marked = true; this.say('AQUÍ HAY ALGUIEN QUE HA POTADO...', 2); }
+            if (this.state === S.INVESTIGATE && !staff) { this.marked = true; this.say('AQUÍ HAY ALGUIEN QUE HA POTADO...', 2); }
             this.suspicion = 0; this.alert = 0;
             this.resumeRoutine();
           }
         }
         break;
       }
-      case S.ALERT: {
-        this.moving = false;
-        this.turnTo(Math.atan2(P.cy - this.eyeY, P.x - this.x), dt, 8);
-        if (this.stateT > 2.2) {
+      case S.CHASE: {
+        // "!": corre hacia Pipi; sólo es GAME OVER si le alcanza
+        if (visible && (!staff || this.staffCares(P))) {
+          this.lastSeen = { x: P.x, y: P.y };
+          this.lostT = 0;
+          this.chaseRepath -= dt;
+          if (this.chaseRepath <= 0 || !this.path || this.pathIdx >= this.path.length) { this.planTo({ x: P.x, y: P.y }); this.chaseRepath = 0.3; }
+        } else {
+          this.lostT += dt;
+          if (!this.lostPlanned && this.lastSeen) { this.planTo(this.lastSeen); this.lostPlanned = true; }
+        }
+        if (visible) this.lostPlanned = false;
+        if (this.path && this.pathIdx < this.path.length) this.followPath(dt, CONFIG.player.speed * D.chaseSpeedMul);
+        else { this.moving = false; this.lookAround(dt); }
+        if (d < D.catchDistance) { game.caught(this, staff ? 'staff' : 'chase'); return; }
+        const tooFar = staff && !this.staffCares(P) && this.stateT > 1;
+        if (this.lostT > D.chaseGiveUp || this.stateT > D.chaseMax || tooFar) {
+          this.say(pick(this.stateT > D.chaseMax ? ['UF... QUÉ RÁPIDO...', 'NO PUEDO MÁS...'] : ['¿DÓNDE SE HA METIDO?', 'SE ME HA ESCAPADO...', 'JURARÍA QUE ERA PIPI...']), 2);
+          game.onEscape(this);
           this.suspicion = 0; this.alert = 0; this.ignoreT = D.ignoreAfterCatch;
           this.resumeRoutine();
         }
@@ -299,6 +349,26 @@ export class NPC {
       }
       default: break;
     }
+  }
+
+  startChase(game) {
+    this.state = S.CHASE; this.stateT = 0; this.lostT = 0; this.chaseRepath = 0; this.lostPlanned = false;
+    this.lastSeen = { x: game.player.x, y: game.player.y };
+    this.say(this.isStaff ? pick(['¡EH, TÚ! ¡VEN AQUÍ!', '¡QUIETO AHÍ!']) : pick(['¡PIPI! ¡VEN AQUÍ!', '¡A POR ÉL!', '¡ESPERA, PIPI!']), 1.8);
+    game.sfx('alert');
+    vibrate(80);
+  }
+
+  investigateAt(x, y, text) {
+    this.state = S.INVESTIGATE; this.stateT = 0; this.lookT = 0;
+    this.target = { x, y };
+    this.planTo({ x, y: y - 2 });
+    if (text) this.say(text);
+  }
+
+  startHunt() {
+    this.state = S.HUNT; this.stateT = 0; this.huntRepath = 0;
+    this.say(pick(['¿DÓNDE SE HA METIDO PIPI?', 'VOY A BUSCAR A PIPI', '¿ALGUIEN HA VISTO A PIPI?']), 2.2);
   }
 
   lookAround(dt) {
@@ -310,7 +380,7 @@ export class NPC {
   // Ruido de un objeto lanzado
   hearNoise(x, y) {
     if (this.kind !== 'A') return;
-    if (this.state === S.ALERT || this.state === S.SEARCH) return;
+    if (this.state === S.CHASE || this.state === S.SEARCH) return;
     this.state = S.DISTRACTED;
     this.stateT = 0;
     this.distractEnd = Infinity; // se fija al llegar al punto del ruido
@@ -318,28 +388,77 @@ export class NPC {
     this.say(pick(['¿QUÉ HA SIDO ESO?', '¿EH?', '¿HOLA?']), 1.4);
   }
 
+  reactToPuke(game, P) {
+    if (game.reactedThisPuke.has(this)) return;
+    game.reactedThisPuke.add(this);
+    this.say(pick(this.role === 'kid' ? ['¡MAMÁ, ESE SEÑOR HA POTADO!', '¡HALA, QUÉ ASCO!'] : ['¡QUÉ ASCO!', 'TÍO...', '¡MIS ZAPATILLAS!', '¡PUAJ!', 'MADRE MÍA...', '¡AL MENOS APUNTA!']), 2.2);
+    this.reactT = 2.2;
+    this.fleeAngle = Math.atan2(this.y - P.y, this.x - P.x);
+    game.onEscape(this, true);
+  }
+
   // ----------------- NPC-B -----------------
   updateB(dt, game) {
     const P = game.player;
+    if (this.role === 'dog') { this.updateDog(dt, game); return; }
     if (this.reactT > 0) {
       this.reactT -= dt;
       this.moving = false;
       if (this.fleeAngle !== undefined) this.turnTo(this.fleeAngle, dt, 10);
       return;
     }
-    if (this.worker || this.kind === 'B') {
-      if (P.isPuking && !game.playerHidden() && this.sees(game, P.x, P.cy)) {
-        if (this.worker && this.inZone(P.x, P.y)) { game.caught(this, 'staff'); return; }
-        if (!game.reactedThisPuke.has(this)) {
-          game.reactedThisPuke.add(this);
-          this.say(pick(this.role === 'kid' ? ['¡MAMÁ, ESE SEÑOR HA POTADO!', '¡HALA, QUÉ ASCO!'] : this.role === 'dog' ? ['¡GUAU!', '¡GRRR!'] : ['¡QUÉ ASCO!', 'TÍO...', '¡MIS ZAPATILLAS!', '¡PUAJ!', 'MADRE MÍA...', '¡AL MENOS APUNTA!']), 2.2);
-          this.reactT = 2.2;
-          this.fleeAngle = Math.atan2(this.y - P.y, this.x - P.x);
-          game.onEscape(this, true);
+    if (P.isPuking && !game.playerHidden() && this.sees(game, P.x, P.cy)) this.reactToPuke(game, P);
+    // rutina
+    if (this.state === S.RETURN) {
+      if (this.followPath(dt, this.speed)) {
+        this.state = S.ROUTINE;
+        if (this.behavior === 'route' && this.route.length) this.planTo(this.route[this.routeIdx]);
+      }
+    } else this.updateRoutine(dt);
+  }
+
+  // Perro chivato: si ve potar a Pipi, ladra, va a buscar al NPC-A más
+  // cercano y lo trae hasta donde le vio potar.
+  updateDog(dt, game) {
+    const P = game.player;
+    this.stateT += dt;
+    if (this.fetch) {
+      const f = this.fetch;
+      this.barkT -= dt;
+      if (this.barkT <= 0) { this.barkT = 1.1; this.say(pick(['¡GUAU! ¡GUAU!', '¡GUAU!', '¡GRRR, GUAU!']), 1); game.sfx('bark'); }
+      if (f.phase === 'toNpc') {
+        f.repath -= dt;
+        if (f.repath <= 0) { this.planTo({ x: f.npc.x, y: f.npc.y - 2 }); f.repath = 0.5; }
+        this.followPath(dt, CONFIG.npcSpeed.dog);
+        if (dist(this.x, this.y, f.npc.x, f.npc.y) < 16 || this.stateT > 20) {
+          if (f.npc.state !== S.CHASE) {
+            f.npc.investigateAt(f.x, f.y, pick([`¿QUÉ PASA, ${this.name}?`, '¿QUÉ HAS VISTO, BONITO?', '¿ME QUIERES ENSEÑAR ALGO?']));
+            game.onSuspicion(f.npc, 'dog');
+          }
+          f.phase = 'lead';
+          this.planTo({ x: f.x, y: f.y - 2 });
         }
+      } else if (f.phase === 'lead') {
+        // va delante del NPC, esperándole si se adelanta mucho
+        const far = dist(this.x, this.y, f.npc.x, f.npc.y) > 40;
+        if (!far && this.followPath(dt, CONFIG.npcSpeed.search)) { f.phase = 'wait'; this.stateT = 0; }
+        else if (far) this.moving = false;
+      } else if (this.stateT > 3) {
+        this.fetch = null; this.speech = null;
+        this.resumeRoutine();
+      } else { this.moving = false; this.lookAround(dt); }
+      return;
+    }
+    if (P.isPuking && !game.playerHidden() && !game.reactedThisPuke.has(this) && this.sees(game, P.x, P.cy)) {
+      game.reactedThisPuke.add(this);
+      const npc = game.nearestFriend(this.x, this.y);
+      if (npc) {
+        this.fetch = { npc, x: P.x, y: P.y, phase: 'toNpc', repath: 0 };
+        this.stateT = 0; this.barkT = 0;
+        game.float('¡EL PERRO TE HA VISTO!', P.x, P.y - 24, '#f08830');
+        return;
       }
     }
-    // rutina
     if (this.state === S.RETURN) {
       if (this.followPath(dt, this.speed)) {
         this.state = S.ROUTINE;
@@ -350,7 +469,8 @@ export class NPC {
 
   update(dt, game) {
     if (!this.home) this.home = { x: this.x, y: this.y };
-    if (this.kind === 'A') this.updateA(dt, game); else this.updateB(dt, game);
+    if (this.reactT > 0 && this.isStaff) { this.reactT -= dt; this.moving = false; }
+    else if (this.kind === 'A' || this.worker) this.updateA(dt, game); else this.updateB(dt, game);
     if (this.speech) { this.speech.t -= dt; if (this.speech.t <= 0) this.speech = null; }
     // cono (sólo NPC-A y trabajadores)
     if ((this.kind === 'A' || this.worker) && game.nearView(this.x, this.y, this.coneRange + 8)) {
@@ -359,11 +479,12 @@ export class NPC {
   }
 
   coneColor() {
-    if (this.kind !== 'A') return '#f09030';
+    if (this.state === S.CHASE) return '#f83030';
+    if (this.kind !== 'A' && (this.state === S.ROUTINE || this.state === S.RETURN)) return '#f09030';
     switch (this.state) {
       case S.SUSPICIOUS: case S.INVESTIGATE: case S.DISTRACTED: return '#f8c030';
       case S.SEARCH: return '#f88030';
-      case S.ALERT: return '#f83030';
+      case S.HUNT: return '#f8a8e0';
       default: return this.marked ? '#f8e070' : '#f8f0c0';
     }
   }
