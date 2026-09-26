@@ -1,0 +1,27 @@
+// Multitouch: dedo 1 en la cruceta (derecha), dedo 2 en A; luego desliza el dedo 1 hacia abajo-derecha
+import { chromium, devices } from 'playwright';
+import { resolve } from 'node:path';
+const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1194/chrome-linux/chrome' });
+const ctx = await browser.newContext({ ...devices['Pixel 7'] });
+const page = await ctx.newPage();
+const errs = [];
+page.on('pageerror', (e) => errs.push(e.message));
+await page.goto('file://' + resolve('../dist/pipi-potter.html'));
+await page.waitForTimeout(300);
+const cdp = await ctx.newCDPSession(page);
+const rect = (sel) => page.evaluate((s) => { const r = document.querySelector(s).getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width }; }, sel);
+const dp = await rect('#dpad'), a = await rect('[data-btn="a"]');
+const state = () => page.evaluate(() => { const i = window.__pipiInput; i.poll(); return ['up', 'down', 'left', 'right', 'a', 'b'].filter((k) => i.down[k]).join(','); });
+const touch = (type, pts) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: pts.map((p, id) => ({ x: p[0], y: p[1], id })) });
+await touch('touchStart', [[dp.x + dp.w * 0.35, dp.y]]);
+console.log('dedo1 derecha:', await state());
+await touch('touchStart', [[dp.x + dp.w * 0.35, dp.y], [a.x, a.y]]);
+console.log('dedo1 derecha + dedo2 A:', await state());
+await touch('touchMove', [[dp.x + dp.w * 0.3, dp.y + dp.w * 0.3], [a.x, a.y]]);
+console.log('desliza a diagonal + A:', await state());
+await touch('touchEnd', []);
+console.log('suelta todo:', await state());
+console.log('layout', JSON.stringify(await page.evaluate(() => { const c = document.getElementById('screen'); return { css: c.style.width, dpr: devicePixelRatio, vw: innerWidth, vh: innerHeight }; })));
+await page.screenshot({ path: process.argv[2] });
+console.log(errs.length ? errs.join('\n') : 'no errors');
+await browser.close();
