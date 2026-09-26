@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#1b1426">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Pipi Potter</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' shape-rendering='crispEdges'%3E%3Crect width='16' height='16' fill='%231b1426'/%3E%3Crect x='3' y='2' width='10' height='5' fill='%234a2c1c'/%3E%3Crect x='4' y='6' width='8' height='5' fill='%23b8d890'/%3E%3Crect x='5' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='10' y='7' width='1' height='1' fill='%23000'/%3E%3Crect x='4' y='11' width='8' height='4' fill='%23eeeef2'/%3E%3Crect x='7' y='10' width='3' height='2' fill='%238cb030'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --cw: 400px;
+    --case: #7c5aa0; --case-hi: #9a78c0; --case-lo: #583a78;
+    --bezel: #2a2236; --ink: #140c1c; --btn: #c02858; --btn-hi: #e84878;
+    --pad: #221a2c; --label: #3c2658;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; height: 100%; background: #140c1c; overflow: hidden;
+    touch-action: none; overscroll-behavior: none;
+    -webkit-user-select: none; user-select: none; -webkit-touch-callout: none;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  }
+  body {
+    display: flex; align-items: center; justify-content: center;
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    background: radial-gradient(ellipse at 50% 30%, #2a1c40 0%, #140c1c 70%);
+  }
+  #console {
+    position: relative; width: var(--cw); height: min(100%, calc(var(--cw) * 1.66));
+    max-height: 100%;
+    background: linear-gradient(160deg, var(--case-hi) 0%, var(--case) 35%, var(--case-lo) 100%);
+    border-radius: calc(var(--cw) * 0.035) calc(var(--cw) * 0.035) calc(var(--cw) * 0.16) calc(var(--cw) * 0.035);
+    box-shadow: inset 0 3px 0 rgba(255,255,255,.25), inset 0 -6px 0 rgba(0,0,0,.25), 0 10px 40px rgba(0,0,0,.6);
+    display: flex; flex-direction: column; align-items: center;
+    padding: calc(var(--cw) * 0.045) calc(var(--cw) * 0.05) 0;
+  }
+  /* rebaje superior */
+  #console::before {
+    content: ""; position: absolute; top: calc(var(--cw) * 0.012); left: 5%; right: 5%; height: 2px;
+    background: rgba(0,0,0,.2); border-radius: 2px;
+  }
+  #bezel {
+    position: relative; width: 100%;
+    background: var(--bezel);
+    border-radius: calc(var(--cw) * 0.03) calc(var(--cw) * 0.03) calc(var(--cw) * 0.1) calc(var(--cw) * 0.03);
+    padding: calc(var(--cw) * 0.06) 0 calc(var(--cw) * 0.05);
+    display: flex; flex-direction: column; align-items: center;
+    box-shadow: inset 0 2px 6px rgba(0,0,0,.6);
+  }
+  #bezel-title {
+    position: absolute; top: calc(var(--cw) * 0.018); left: 4%; right: 6%;
+    display: flex; align-items: center; gap: 6px;
+    color: #8a80a0; font-size: calc(var(--cw) * 0.024); letter-spacing: .08em; font-weight: 700;
+  }
+  #bezel-title em { font-style: normal; margin-right: 4px; }
+  #bezel-title i { flex: 1; height: 2px; background: linear-gradient(90deg, #e03878, #f8c838 50%, #58c048); opacity: .8; }
+  #led-wrap {
+    position: absolute; left: calc(var(--cw) * 0.025); top: 42%;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    color: #8a80a0; font-size: calc(var(--cw) * 0.02); font-weight: 700; letter-spacing: .05em;
+  }
+  #led { width: calc(var(--cw) * 0.022); height: calc(var(--cw) * 0.022); border-radius: 50%; background: #ff3838; box-shadow: 0 0 8px #ff3838, 0 0 2px #fff inset; }
+  #screen {
+    display: block; image-rendering: pixelated; image-rendering: crisp-edges;
+    background: #000; box-shadow: 0 0 0 2px #0c0814;
+    touch-action: none;
+  }
+  #brand {
+    margin: calc(var(--cw) * 0.018) 0 0; align-self: flex-start; margin-left: 4%;
+    font-weight: 900; font-style: italic; letter-spacing: .02em;
+    font-size: calc(var(--cw) * 0.058); color: var(--label);
+    text-shadow: 0 1px 0 rgba(255,255,255,.25);
+  }
+  #brand b { color: #e03878; }
+  #brand span { font-size: .45em; font-style: normal; letter-spacing: .2em; margin-left: .5em; vertical-align: middle; color: #3c2658; opacity: .8; }
+  #controls {
+    position: relative; flex: 1; width: 100%; min-height: calc(var(--cw) * 0.55);
+  }
+  /* Cruceta */
+  #dpad {
+    position: absolute; left: 2%; top: 14%;
+    width: calc(var(--cw) * 0.34); height: calc(var(--cw) * 0.34);
+  }
+  #dpad .arm { position: absolute; background: var(--pad); box-shadow: inset 0 -3px 0 rgba(0,0,0,.4), 0 2px 0 rgba(255,255,255,.15); }
+  #dpad .h { left: 0; right: 0; top: 33.3%; height: 33.4%; border-radius: 6px; }
+  #dpad .v { top: 0; bottom: 0; left: 33.3%; width: 33.4%; border-radius: 6px; }
+  #dpad .dimple { position: absolute; left: 41%; top: 41%; width: 18%; height: 18%; border-radius: 50%; background: rgba(0,0,0,.35); }
+  #dpad .tri { position: absolute; width: 0; height: 0; border: calc(var(--cw) * 0.018) solid transparent; opacity: .35; }
+  #dpad .tri.u { left: 50%; top: 8%; transform: translateX(-50%); border-bottom-color: #8a80a0; border-top-width: 0; }
+  #dpad .tri.d { left: 50%; bottom: 8%; transform: translateX(-50%); border-top-color: #8a80a0; border-bottom-width: 0; }
+  #dpad .tri.l { top: 50%; left: 8%; transform: translateY(-50%); border-right-color: #8a80a0; border-left-width: 0; }
+  #dpad .tri.r { top: 50%; right: 8%; transform: translateY(-50%); border-left-color: #8a80a0; border-right-width: 0; }
+  #dpad[data-dir~="up"] .tri.u, #dpad[data-dir~="down"] .tri.d, #dpad[data-dir~="left"] .tri.l, #dpad[data-dir~="right"] .tri.r { opacity: 1; }
+  #dpad[data-dir~="up"] { transform: perspective(300px) rotateX(6deg); }
+  #dpad[data-dir~="down"] { transform: perspective(300px) rotateX(-6deg); }
+  #dpad[data-dir~="left"] { transform: perspective(300px) rotateY(-6deg); }
+  #dpad[data-dir~="right"] { transform: perspective(300px) rotateY(6deg); }
+  /* A / B */
+  #ab { position: absolute; right: 2%; top: 12%; width: calc(var(--cw) * 0.4); height: calc(var(--cw) * 0.3); transform: rotate(-22deg); }
+  #ab::before { content: ""; position: absolute; inset: 22% -4%; border-radius: 999px; background: rgba(0,0,0,.12); }
+  .btn {
+    position: absolute; width: calc(var(--cw) * 0.15); height: calc(var(--cw) * 0.15); border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, var(--btn-hi), var(--btn) 60%, #801838);
+    box-shadow: 0 4px 0 #5a1028, 0 6px 8px rgba(0,0,0,.4);
+    color: rgba(255,255,255,.55); font-weight: 900; font-size: calc(var(--cw) * 0.05);
+    display: flex; align-items: center; justify-content: center;
+    transition: transform .04s;
+  }
+  .btn.on { transform: translateY(3px); box-shadow: 0 1px 0 #5a1028, 0 2px 4px rgba(0,0,0,.4); filter: brightness(1.15); }
+  .btn.b { left: 2%; top: 30%; }
+  .btn.a { right: 2%; top: 30%; }
+  .btn small { position: absolute; top: 108%; font-size: calc(var(--cw) * 0.03); color: var(--label); letter-spacing: .08em; white-space: nowrap; }
+  /* START / SELECT */
+  #ss { position: absolute; left: 50%; bottom: 20%; transform: translateX(-50%); display: flex; gap: calc(var(--cw) * 0.07); }
+  .pill {
+    position: relative; width: calc(var(--cw) * 0.12); height: calc(var(--cw) * 0.032); border-radius: 999px;
+    background: #4a3a5a; transform: rotate(-22deg); box-shadow: 0 2px 0 rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.2);
+  }
+  .pill.on { filter: brightness(1.4); transform: rotate(-22deg) translateY(1px); }
+  .pill small { position: absolute; left: 50%; top: 150%; transform: translateX(-50%); font-size: calc(var(--cw) * 0.026); color: var(--label); font-weight: 800; letter-spacing: .08em; }
+  /* altavoz */
+  #speaker { position: absolute; right: 7%; bottom: 7%; display: grid; grid-template-columns: repeat(6, 1fr); gap: calc(var(--cw) * 0.012); transform: rotate(-28deg); }
+  #speaker i { width: calc(var(--cw) * 0.012); height: calc(var(--cw) * 0.1); border-radius: 99px; background: rgba(0,0,0,.28); box-shadow: 0 1px 0 rgba(255,255,255,.15); }
+  #hint { position: fixed; bottom: 6px; left: 0; right: 0; text-align: center; color: #5a4a70; font-size: 11px; pointer-events: none; }
+  @media (pointer: coarse) { #hint { display: none; } }
+  @media (min-aspect-ratio: 3/4) and (pointer: fine) { #console { height: calc(var(--cw) * 1.66); } }
+</style>
+</head>
+<body>
+  <div id="console">
+    <div id="bezel">
+      <div id="bezel-title"><div id="led"></div><em>POWER</em><i></i><span>PANTALLA DE PUNTOS · 8 BITS</span><i></i></div>
+      <canvas id="screen" width="160" height="144"></canvas>
+    </div>
+    <div id="brand"><b>PIPI</b> POTTER<span>PORTÁTIL</span></div>
+    <div id="controls">
+      <div id="dpad">
+        <div class="arm h"></div><div class="arm v"></div><div class="dimple"></div>
+        <div class="tri u"></div><div class="tri d"></div><div class="tri l"></div><div class="tri r"></div>
+      </div>
+      <div id="ab">
+        <div class="btn b" data-btn="b">B<small>USAR</small></div>
+        <div class="btn a" data-btn="a">A<small>POTAR</small></div>
+      </div>
+      <div id="ss">
+        <div class="pill" data-btn="select"><small>SELECT</small></div>
+        <div class="pill" data-btn="start"><small>START</small></div>
+      </div>
+      <div id="speaker"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+    </div>
+  </div>
+  <div id="hint">Teclado: flechas mover · Z potar (mantener) · X usar · Enter start · Shift select</div>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

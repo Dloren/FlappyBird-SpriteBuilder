@@ -1,0 +1,11 @@
+{
+  "appId": "com.pipipotter.game",
+  "appName": "Pipi Potter",
+  "webDir": "www",
+  "android": {
+    "backgroundColor": "#1b1426"
+  },
+  "plugins": {
+    "StatusBar": { "overlaysWebView": true }
+  }
+}
