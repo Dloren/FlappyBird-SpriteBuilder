@@ -29,9 +29,30 @@ const res = await page.evaluate(() => {
   run(sc, 2);
   out.lowNausea = { state: n.state, suspicion: +n.suspicion.toFixed(2), unseenT: +sc.unseenT.toFixed(2) };
   sc.player.nausea = 0.6;
-  const states = [];
-  const tCaught = run(sc, 12, () => { if (states[states.length - 1] !== n.state) states.push(n.state); if (n.state === 'chase') out.boost = Math.max(out.boost || 0, sc.player.speedMul); return sc.mode === 'caught'; });
-  out.highNausea = { states, caughtAfter: tCaught, reason: sc.caughtReason };
+  let states = [];
+  let said = [];
+  const tC1 = run(sc, 8, () => { if (states[states.length - 1] !== n.state) states.push(n.state); if (n.speech && !said.includes(n.speech.text)) said.push(n.speech.text); return sc.mode === 'caught'; });
+  out.highNausea = { states, caught: tC1 !== null, said, escapes: sc.stats.escapes };
+
+  // 1b) Le ve potando → "!" y persecución; GAME OVER sólo al alcanzarle
+  sc = setup(0, (m) => m.kind === 'A' && m === app.scene.npcs.find((q) => q.kind === 'A'));
+  n = sc.npcs[0];
+  place(n, 8, 5, 0);
+  sc.player.x = 11 * T + 8; sc.player.y = 5 * T + 10; sc.player.nausea = 0.9;
+  sc.player.startPuke(sc, true);
+  states = [];
+  const tC2 = run(sc, 8, () => { if (states[states.length - 1] !== n.state) states.push(n.state); if (n.state === 'chase') out.boost = Math.max(out.boost || 0, sc.player.speedMul); return sc.mode === 'caught'; });
+  out.pukeSeen = { states, caughtAfter: tC2, reason: sc.caughtReason };
+
+  // 1c) Le ve junto a su pota (sin estar potando) → persecución
+  sc = setup(0, (m) => m.kind === 'A' && m === app.scene.npcs.find((q) => q.kind === 'A'));
+  n = sc.npcs[0];
+  place(n, 8, 5, 0);
+  sc.player.x = 11 * T + 8; sc.player.y = 5 * T + 10; sc.player.nausea = 0.1;
+  sc.player.facingVec = () => ({ x: 0, y: 0 });
+  sc.onPukeDone(sc.player); sc.puddles[0].age = 1; sc.player.x += 6;
+  run(sc, 0.5);
+  out.puddleSeen = { state: n.state, stained: !!sc.player.stained };
 
   // 2) Batida tras 30 s sin verle
   sc = setup(0);

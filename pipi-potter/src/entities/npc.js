@@ -9,6 +9,9 @@ const DIRS = ['down', 'up', 'left', 'right'];
 const dirAngle = (d) => DIR_ANGLE[DIRS.indexOf(d)];
 
 // Estados de NPC-A
+const PEDO_LINES = ['¡VAYA PEDO LLEVAS!', 'VAS COMO LAS GRECAS', '¿ESTÁS BIEN? TIENES MALA CARA', '¿CUÁNTOS LLEVAS YA?',
+  'VAS FINO FILIPINO, ¿EH?', 'ESTÁS MÁS BLANCO QUE LA PARED', 'VAS MÁS CIEGO QUE UN TOPO', 'TÍO, BEBE AGUA'];
+
 export const S = {
   ROUTINE: 'routine', SUSPICIOUS: 'suspicious', SEARCH: 'search', ALERT: 'alert',
   INVESTIGATE: 'investigate', DISTRACTED: 'distracted', RETURN: 'return', HUNT: 'hunt', CHASE: 'chase',
@@ -193,11 +196,16 @@ export class NPC {
     const immune = P.chicleT > 0;
     if (visible && !staff) game.friendSawPlayer(this);
 
-    // 1) Pillado potando
-    if (P.isPuking && visible) {
-      if (!staff) { game.caught(this, 'puke'); return; }
-      if (this.inZone(P.x, P.y)) { game.caught(this, 'staff'); return; }
-      this.reactToPuke(game, P);
+    // 1) Le ven potando, o le ven a él y a una pota a la vez → "!" y a por él
+    if (visible && this.state !== S.CHASE) {
+      const witness = P.isPuking || game.puddleSeenBy(this);
+      if (witness) {
+        if (!staff || this.inZone(P.x, P.y) || this.staffCares(P)) {
+          this.startChase(game, P.isPuking ? 'puke' : 'puddle');
+          return;
+        }
+        if (P.isPuking) this.reactToPuke(game, P);
+      }
     }
 
     // 2) Aliento: NPC marcado y Pipi pegado a él
@@ -302,7 +310,12 @@ export class NPC {
             this.chaseRepath -= dt;
             this.followPath(dt, CONFIG.npcSpeed.search * 0.6);
           } else this.moving = false;
-          if (this.alert >= 1) this.startChase(game);
+          if (this.alert >= 1) {
+            // sólo le ven con mala cara: comentario, penalización y sigue su camino
+            this.state = S.ALERT; this.stateT = 0; this.moving = false;
+            game.onEscape(this);
+            this.say(staff ? pick(['CHAVAL, TÚ YA NO BEBES MÁS', 'OJITO, QUE TE VIGILO', 'EL SIGUIENTE, AGUA']) : pick(PEDO_LINES), 2.5);
+          }
           break;
         }
         this.alert = Math.max(0, this.alert - D.decay * 0.5 * dt);
@@ -323,6 +336,15 @@ export class NPC {
         }
         break;
       }
+      case S.ALERT: {
+        this.moving = false;
+        this.turnTo(Math.atan2(P.cy - this.eyeY, P.x - this.x), dt, 8);
+        if (this.stateT > 2.2) {
+          this.suspicion = 0; this.alert = 0; this.ignoreT = D.ignoreAfterCatch;
+          this.resumeRoutine();
+        }
+        break;
+      }
       case S.CHASE: {
         // "!": corre hacia Pipi; sólo es GAME OVER si le alcanza
         if (visible && (!staff || this.staffCares(P))) {
@@ -340,6 +362,7 @@ export class NPC {
         if (d < D.catchDistance) { game.caught(this, staff ? 'staff' : 'chase'); return; }
         const tooFar = staff && !this.staffCares(P) && this.stateT > 1;
         if (this.lostT > D.chaseGiveUp || this.stateT > D.chaseMax || tooFar) {
+          this.chaseWhy = null;
           this.say(pick(this.stateT > D.chaseMax ? ['UF... QUÉ RÁPIDO...', 'NO PUEDO MÁS...'] : ['¿DÓNDE SE HA METIDO?', 'SE ME HA ESCAPADO...', 'JURARÍA QUE ERA PIPI...']), 2);
           game.onEscape(this);
           this.suspicion = 0; this.alert = 0; this.ignoreT = D.ignoreAfterCatch;
@@ -351,10 +374,11 @@ export class NPC {
     }
   }
 
-  startChase(game) {
+  startChase(game, why) {
+    this.chaseWhy = why;
     this.state = S.CHASE; this.stateT = 0; this.lostT = 0; this.chaseRepath = 0; this.lostPlanned = false;
     this.lastSeen = { x: game.player.x, y: game.player.y };
-    this.say(this.isStaff ? pick(['¡EH, TÚ! ¡VEN AQUÍ!', '¡QUIETO AHÍ!']) : pick(['¡PIPI! ¡VEN AQUÍ!', '¡A POR ÉL!', '¡ESPERA, PIPI!']), 1.8);
+    this.say(this.isStaff ? pick(['¡EH, TÚ! ¡VEN AQUÍ!', '¡QUIETO AHÍ!']) : why === 'puddle' ? pick(['¡HAS SIDO TÚ, PIPI!', '¡ESA POTA ES TUYA!', '¡PIPI, GUARRO!']) : pick(['¡PIPI! ¡TE HE VISTO!', '¡A POR ÉL!', '¡PIPI ESTÁ POTANDO!']), 1.8);
     game.sfx('alert');
     vibrate(80);
   }
@@ -485,6 +509,7 @@ export class NPC {
       case S.SUSPICIOUS: case S.INVESTIGATE: case S.DISTRACTED: return '#f8c030';
       case S.SEARCH: return '#f88030';
       case S.HUNT: return '#f8a8e0';
+      case S.ALERT: return '#f8d030';
       default: return this.marked ? '#f8e070' : '#f8f0c0';
     }
   }

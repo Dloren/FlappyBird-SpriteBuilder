@@ -334,6 +334,7 @@ export function characterSheet(spec) {
   const key = JSON.stringify(spec);
   if (sheetCache.has(key)) return sheetCache.get(key);
   if (spec.dog) { const d = dogSheet(spec); sheetCache.set(key, d); return d; }
+  if (spec.pipi) { const d = pipiSheet(spec); sheetCache.set(key, d); return d; }
   const [c, g] = makeCanvas(16 * 3, 16 * 4);
   DIRS.forEach((dir, di) => {
     for (let s = 0; s < 3; s++) {
@@ -378,16 +379,114 @@ export function drawCharacter(ctx, spec, dir, step, x, y, scale = 1) {
 // ---------- PIPI ----------
 // Pelo castaño oscuro, barba, piel clara, camiseta blanca, vaqueros oscuros,
 // bajito y con algo de tripa.
-export const PIPI_BASE = {
-  style: 'short', body: 'belly', beard: true,
-  outline: '#1e1428', hair: '#4a2c1c', skin: '#f0c098', shirt: '#eeeef2', pants: '#2c3450', shoes: '#1e1428',
+// Pipi (diseño de la imagen de referencia): pelo castaño revuelto con mechón,
+// bigote de herradura, camiseta blanca, vaqueros azules y un pelín de tripa.
+//  o contorno · h pelo · d mechón oscuro · s piel · e ojo · m bigote
+//  t camiseta · p vaquero · k zapato
+export const PIPI_ROWS = {
+  down: [
+    '....oooooooo....',
+    '...ohhhhhhhhho..',
+    '..ohhhdhhhhhhho.',
+    '..ohhhhddhhhhho.',
+    '..ohhssshhhhhho.',
+    '..ohssssssshhho.',
+    '..ohsessssesho..',
+    '..ohssmmmmssho..',
+    '...ossmssmsso...',
+    '....ossssssoo...',
+    '...oottttttoo...',
+    '..osttttttttso..',
+    '..osttttttttso..',
+    '...otttttttto...',
+    '...opppoopppo...',
+    '...okkkookkko...',
+  ],
+  up: [
+    '....oooooooo....',
+    '...ohhhhhhhhho..',
+    '..ohhhdhhhhhhho.',
+    '..ohhhhddhhhhho.',
+    '..ohhhhhhhhdhho.',
+    '..ohhhhhhhhhhho.',
+    '..ohhhhhhhhhho..',
+    '..oshhhhhhhhso..',
+    '...ohhhhhhhho...',
+    '....ossssssoo...',
+    '...oottttttoo...',
+    '..osttttttttso..',
+    '..osttttttttso..',
+    '...otttttttto...',
+    '...opppoopppo...',
+    '...okkkookkko...',
+  ],
+  right: [
+    '.....oooooo.....',
+    '....ohhhhhhoo...',
+    '...ohhhdhhhhhho.',
+    '...ohhhhddhhhho.',
+    '...ohhhhhhhssho.',
+    '...ohhhhhhsssso.',
+    '...ohhhshssseso.',
+    '...ohhhhsssmmso.',
+    '....ohsssssmso..',
+    '.....ossssso....',
+    '.....ootttoo....',
+    '....ottsstto....',
+    '....ottssttto...',
+    '....otttttto....',
+    '.....opppppo....',
+    '.....okkokko....',
+  ],
 };
-export function pipiSpec(nausea = 0) {
+const PIPI_FEET = {
+  down: ['...okkkookkko...', '...okkko.ooo....', '....ooo.okkko...'],
+  right: ['.....okkokko....', '....okko..oko...', '......okkoo.....'],
+};
+// mancha de pota en la camiseta (x, y, oscuro?)
+const STAIN = {
+  down: [[7, 11, 0], [8, 11, 1], [7, 12, 1], [8, 12, 0], [9, 12, 0], [8, 13, 1]],
+  right: [[9, 11, 0], [10, 12, 1], [9, 12, 0], [10, 11, 1]],
+};
+function pipiSheet(spec) {
+  const [c, g] = makeCanvas(48, 64);
+  const col = {
+    o: spec.outline, e: spec.outline, h: spec.hair, d: spec.hairDark, s: spec.skin, m: spec.hairDark,
+    t: spec.shirt, p: spec.pants, k: spec.shoes,
+  };
+  DIRS.forEach((dir, di) => {
+    const d = dir === 'left' ? 'right' : dir;
+    const mirror = dir === 'left';
+    for (let st = 0; st < 3; st++) {
+      const rows = PIPI_ROWS[d].slice();
+      rows[15] = PIPI_FEET[d === 'right' ? 'right' : 'down'][st];
+      for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+        const k = col[rows[y][x]];
+        if (!k) continue;
+        g.fillStyle = k;
+        g.fillRect(st * 16 + (mirror ? 15 - x : x), di * 16 + y, 1, 1);
+      }
+      if (spec.stain && d !== 'up') {
+        for (const [x, y, dark] of STAIN[d]) {
+          g.fillStyle = dark ? '#5c8c20' : '#9cc040';
+          g.fillRect(st * 16 + (mirror ? 15 - x : x), di * 16 + y, 1, 1);
+        }
+      }
+    }
+  });
+  return c;
+}
+
+export const PIPI_BASE = {
+  pipi: true,
+  outline: '#1e1428', hair: '#6a4226', hairDark: '#3c2416', skin: '#f6c8a2', shirt: '#f2f2f6', pants: '#3e5078', shoes: '#2a2224',
+};
+export function pipiSpec(nausea = 0, stain = false) {
   // La piel se pone verdosa según la náusea
   let skin = PIPI_BASE.skin;
   if (nausea > 0.85) skin = '#b8d890';
   else if (nausea > 0.6) skin = '#dcd49c';
-  return { ...PIPI_BASE, skin };
+  return { ...PIPI_BASE, skin, stain };
 }
 
 // ---------- ICONOS DE OBJETOS (8x8) ----------

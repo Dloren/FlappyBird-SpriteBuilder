@@ -10,6 +10,8 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        // Permite que suene la música de la intro sin tocar antes la pantalla
+        getBridge().getWebView().getSettings().setMediaPlaybackRequiresUserGesture(false);
         hideSystemBars();
     }
 

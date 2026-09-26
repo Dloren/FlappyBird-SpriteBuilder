@@ -95,6 +95,8 @@ app.preview = (i) => {
 
 input.attach(canvas, document.getElementById('controls'));
 input.onFirstInteraction = () => audio.init();
+// En la APK el WebView permite audio sin gesto: intenta arrancar ya la música de la intro
+try { audio.init(); } catch (_) { /* noop */ }
 
 // ---------- Integración nativa (APK) ----------
 if (isNative()) {

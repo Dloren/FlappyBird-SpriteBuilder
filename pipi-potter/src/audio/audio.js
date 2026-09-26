@@ -57,6 +57,8 @@ class ChipAudio {
     return this.ctx.createPeriodicWave(real, imag);
   }
 
+  get running() { return !!(this.ctx && this.ctx.state === 'running'); }
+
   setMuted(m) {
     this.muted = m;
     try { localStorage.setItem('pp_muted', m ? '1' : '0'); } catch (_) { /* noop */ }

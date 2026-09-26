@@ -6,7 +6,7 @@ import { audio } from '../audio/audio.js';
 import { UI, panel, cursor, button, makeCanvas } from '../engine/gfx.js';
 import { drawText, drawTextCentered, wrapText, textWidth } from '../engine/font.js';
 import { pick, fmtTime, clamp, rand } from '../engine/util.js';
-import { drawCharacter, pipiSpec, drawIcon, makePuddle } from '../assets/sprites.js';
+import { drawCharacter, pipiSpec, drawIcon, makePuddle, PIPI_ROWS } from '../assets/sprites.js';
 import { drawGameOverArt } from '../assets/illustrations.js';
 import { LEVELS } from '../levels/index.js';
 import { resolveLevel } from '../levels/names.js';
@@ -14,6 +14,7 @@ import { loadScores, qualifies, addScore, lastName, saveName, fmtDate } from '..
 import { shareCanvas } from '../engine/share.js';
 import { buildShareCard } from '../ui/sharecard.js';
 import { PHRASES, TYPE_TITLE, BREATH_PREFIX } from '../ui/phrases.js';
+import { MOTES, awardMote, unlockedMotes } from '../ui/motes.js';
 import { ITEM_NAMES, ITEM_DESC } from './game.js';
 
 // ---------- utilidades comunes ----------
@@ -58,27 +59,45 @@ export class TitleScene {
   constructor(app) { this.app = app; }
   enter() {
     this.t = 0;
-    this.px = -20; this.state = 'walk'; this.st = 0; this.puddles = [];
+    this.resetLoop();
     this.puddleImg = makePuddle(0.77);
-    this.stars = Array.from({ length: 30 }, () => [rand(0, 160), rand(0, 90), rand(0, 6)]);
+    this.stars = Array.from({ length: 30 }, () => [rand(0, 160), rand(0, 60), rand(0, 6)]);
     audio.playMusic('title');
+  }
+  resetLoop() {
+    this.px = 170; this.state = 'walk'; this.st = 0; this.puddles = []; this.faceY = 150;
   }
   update(dt) {
     this.t += dt;
     this.st += dt;
     if (this.state === 'walk') {
-      this.px += dt * 26;
-      if (this.px > 60 && this.puddles.length === 0) { this.state = 'puke'; this.st = 0; }
-      if (this.px > 180) { this.px = -20; this.puddles = []; }
-    } else if (this.state === 'puke' && this.st > 1.4) { this.puddles.push(this.px + 10); this.state = 'walk'; }
-    if (input.pressed.start || input.pressed.a || input.consumeTap()) { audio.sfx('select'); this.app.setScene(new MenuScene(this.app)); }
+      // Pipi cruza de derecha a izquierda, pota a mitad y se va
+      this.px -= dt * 38;
+      if (this.px < 72 && this.puddles.length === 0) { this.state = 'puke'; this.st = 0; }
+      if (this.px < -20) { this.state = 'rise'; this.st = 0; }
+    } else if (this.state === 'puke' && this.st > 1.4) { this.puddles.push(this.px - 4); this.state = 'walk'; }
+    else if (this.state === 'rise') {
+      // su cara sube desde abajo y se queda bajo el título haciendo la peineta
+      this.faceY = Math.max(FACE_Y, this.faceY - dt * 70);
+      if (this.faceY === FACE_Y && this.st > 7) { this.state = 'sink'; this.st = 0; }
+    } else if (this.state === 'sink') {
+      this.faceY += dt * 90;
+      if (this.faceY > 150) this.resetLoop();
+    }
+    const pressed = input.pressed.start || input.pressed.a || input.consumeTap();
+    if (pressed) {
+      // la primera pulsación sólo activa el sonido (los navegadores lo exigen)
+      if (!audio.running && !this.audioAsked) { this.audioAsked = true; audio.init(); return; }
+      audio.sfx('select');
+      this.app.setScene(new MenuScene(this.app));
+    }
   }
   render(ctx) {
     ctx.fillStyle = '#140c24'; ctx.fillRect(0, 0, SCREEN_W, SCREEN_H);
     for (const [x, y, p] of this.stars) { if (Math.floor(this.t * 2 + p) % 3) { ctx.fillStyle = '#b8a8e8'; ctx.fillRect(Math.round(x), Math.round(y), 1, 1); } }
     // luna
-    ctx.fillStyle = '#f8f0c0'; ctx.beginPath(); ctx.arc(132, 22, 9, 0, 7); ctx.fill();
-    ctx.fillStyle = '#140c24'; ctx.beginPath(); ctx.arc(128, 19, 8, 0, 7); ctx.fill();
+    ctx.fillStyle = '#f8f0c0'; ctx.beginPath(); ctx.arc(140, 16, 7, 0, 7); ctx.fill();
+    ctx.fillStyle = '#140c24'; ctx.beginPath(); ctx.arc(137, 14, 6, 0, 7); ctx.fill();
     // skyline
     ctx.fillStyle = '#2a1c40';
     const bs = [[0, 80, 20], [20, 70, 14], [34, 86, 18], [52, 64, 16], [68, 78, 22], [90, 72, 12], [102, 84, 20], [122, 68, 16], [138, 80, 22]];
@@ -86,25 +105,75 @@ export class TitleScene {
     ctx.fillStyle = '#f8c838';
     for (const [x, y, w] of bs) for (let wy = y + 4; wy < 104; wy += 6) for (let wx = x + 3; wx < x + w - 2; wx += 5) if ((wx * 7 + wy * 13) % 5 === 0) ctx.fillRect(wx, wy, 2, 2);
     ctx.fillStyle = '#3a2c50'; ctx.fillRect(0, 110, SCREEN_W, 34);
-    ctx.fillStyle = '#4a3a60'; for (let x = 0; x < 160; x += 12) ctx.fillRect(x + ((Math.floor(this.t * 10)) % 12) * 0, 118, 6, 1);
+    ctx.fillStyle = '#4a3a60'; for (let x = 0; x < 160; x += 12) ctx.fillRect(x, 118, 6, 1);
+    // Pipi paseando
+    for (const x of this.puddles) ctx.drawImage(this.puddleImg, Math.round(x - 9), 124);
+    if (this.state === 'walk' || this.state === 'puke') {
+      const walking = this.state === 'walk';
+      const step = walking ? 1 + (Math.floor(this.t * 8) % 2) : 0;
+      const shake = this.state === 'puke' ? Math.round(Math.sin(this.st * 40)) : 0;
+      drawCharacter(ctx, pipiSpec(this.state === 'puke' ? 1 : 0.7, this.puddles.length > 0), 'left', step, Math.round(this.px) + shake, 110);
+      if (this.state === 'puke' && this.st > 0.8) {
+        ctx.fillStyle = '#8cb030';
+        for (let i = 0; i < 6; i++) ctx.fillRect(Math.round(this.px) + 1 - i, 118 + Math.round(i * i * 0.3) + (Math.floor(this.st * 20 + i) % 2), 1, 2);
+      }
+    }
+    // cara gigante + peineta
+    if (this.faceY < 145) drawPipiFace(ctx, 48, Math.round(this.faceY), this.t);
     // logo
     const bob = Math.round(Math.sin(this.t * 3) * 1.5);
-    centeredOutlined(ctx, 'PIPI', 80, 14 + bob, UI.yellow, '#e03878', 4);
-    centeredOutlined(ctx, 'POTTER', 80, 40 + bob, '#b8e070', '#2a6a28', 3);
-    drawTextCentered(ctx, 'SIGILO, FIESTA Y ARCADAS', 80, 62, UI.light, 1, UI.ink);
-    // Pipi animado
-    for (const x of this.puddles) ctx.drawImage(this.puddleImg, Math.round(x - 9), 124);
-    const walking = this.state === 'walk';
-    const step = walking ? 1 + (Math.floor(this.t * 8) % 2) : 0;
-    const shake = this.state === 'puke' ? Math.round(Math.sin(this.st * 40)) : 0;
-    drawCharacter(ctx, pipiSpec(this.state === 'puke' ? 1 : 0.7), 'right', step, Math.round(this.px) + shake, 110);
-    if (this.state === 'puke' && this.st > 0.8) {
-      ctx.fillStyle = '#8cb030';
-      for (let i = 0; i < 6; i++) ctx.fillRect(Math.round(this.px) + 14 + i, 118 + Math.round(i * i * 0.3) + (Math.floor(this.st * 20 + i) % 2), 1, 2);
-    }
-    if (Math.floor(this.t * 2) % 2) drawTextCentered(ctx, 'PULSA START', 80, 88, UI.light, 1, UI.ink);
-    drawTextCentered(ctx, '(C) 2026 · CON CARIÑO Y ALMAX', 80, 136, '#8a80a0');
+    centeredOutlined(ctx, 'PIPI', 80, 6 + bob, UI.yellow, '#e03878', 4);
+    centeredOutlined(ctx, 'POTTER', 80, 30 + bob, '#b8e070', '#2a6a28', 3);
+    drawTextCentered(ctx, 'SIGILO, FIESTA Y ARCADAS', 80, 50, UI.light, 1, UI.ink);
+    const hint = !audio.running && !this.audioAsked ? 'PULSA PARA EMPEZAR' : 'PULSA START';
+    if (Math.floor(this.t * 2) % 2) drawTextCentered(ctx, hint, 80, 128, UI.light, 1, UI.ink);
+    drawTextCentered(ctx, '(C) 2026 · CON CARIÑO Y ALMAX', 80, 137, '#8a80a0');
   }
+}
+
+// Cara de Pipi a lo grande (x4) con la mano haciendo la peineta
+const FACE_Y = 58;
+const HAND = [
+  '....ooo....',
+  '....oso....',
+  '....oso....',
+  '.oooosoooo.',
+  'ossosssosso',
+  'osssssssso.',
+  'osssssssso.',
+  '.osssssso..',
+  '..osssso...',
+  '..otttto...',
+  '..otttto...',
+];
+export function drawPipiFace(ctx, x, y, t) {
+  const spec = pipiSpec(0.2);
+  const col = { o: spec.outline, e: spec.outline, h: spec.hair, d: spec.hairDark, s: spec.skin, m: spec.hairDark, t: spec.shirt, p: spec.pants, k: spec.shoes };
+  const rows = PIPI_ROWS.down.slice(0, 13);
+  const blink = Math.floor(t * 10) % 37 === 0;
+  const S = 4;
+  rows.forEach((r, ry) => {
+    for (let rx = 0; rx < 16; rx++) {
+      let c = r[rx];
+      if (blink && c === 'e') c = 's';
+      const k = col[c];
+      if (!k) continue;
+      ctx.fillStyle = k;
+      ctx.fillRect(x + rx * S, y + ry * S, S, S);
+    }
+  });
+  // guiño de ojo: brillo
+  // mano con la peineta, al lado de la cara
+  const hx = x + 58, hy = y + 10 + Math.round(Math.sin(t * 6) * 1.5);
+  const HS = 3;
+  HAND.forEach((r, ry) => {
+    for (let rx = 0; rx < r.length; rx++) {
+      const k = col[r[rx]];
+      if (!k) continue;
+      ctx.fillStyle = k;
+      ctx.fillRect(hx + rx * HS, hy + ry * HS, HS, HS);
+    }
+  });
 }
 
 // ============================================================
@@ -115,8 +184,8 @@ export class MenuScene {
     const unlocked = this.app.unlocked();
     this.opts = [['INICIAR PARTIDA', 'start']];
     if (unlocked > 0) this.opts.push(['ELEGIR NIVEL', 'select']);
-    this.opts.push(['REGLAS DEL JUEGO', 'rules'], ['HISTORIAL', 'scores'], [() => (audio.muted ? 'SONIDO: NO' : 'SONIDO: SÍ'), 'sound']);
-    this.menu = new ListMenu(this.opts.map((o) => o[0]), 30, 50, 100);
+    this.opts.push(['REGLAS DEL JUEGO', 'rules'], ['HISTORIAL', 'scores'], ['LOGROS', 'logros'], [() => (audio.muted ? 'SONIDO: NO' : 'SONIDO: SÍ'), 'sound']);
+    this.menu = new ListMenu(this.opts.map((o) => o[0]), 30, this.opts.length >= 7 ? 27 : 38, 100);
     audio.playMusic('title');
   }
   update(dt) {
@@ -129,12 +198,13 @@ export class MenuScene {
     if (id === 'select') this.app.setScene(new LevelSelectScene(this.app));
     if (id === 'rules') this.app.setScene(new RulesScene(this.app, () => new MenuScene(this.app)));
     if (id === 'scores') this.app.setScene(new ScoresScene(this.app));
+    if (id === 'logros') this.app.setScene(new LogrosScene(this.app));
     if (id === 'sound') audio.setMuted(!audio.muted);
   }
   render(ctx) {
     bg(ctx, this.t);
     centeredOutlined(ctx, 'PIPI POTTER', 80, 12, UI.yellow, '#e03878', 2);
-    drawTextCentered(ctx, 'MENÚ PRINCIPAL', 80, 32, UI.light, 1, UI.ink);
+    if (this.opts.length < 7) drawTextCentered(ctx, 'MENÚ PRINCIPAL', 80, 29, UI.light, 1, UI.ink);
     this.menu.draw(ctx);
     drawCharacter(ctx, pipiSpec(0.4), 'down', Math.floor(this.t * 3) % 3 === 0 ? 0 : 0, 8, 120);
     drawTextCentered(ctx, 'A: ELEGIR · B: VOLVER', 88, 128, UI.grey);
@@ -495,6 +565,7 @@ export class GameOverScene {
     this.score = this.app.run.score;
     this.sel = 0;
     this.msg = null;
+    this.mote = this.info.mote || (this.info.mote = awardMote());
     audio.sfx('gameover');
     vibrate([300]);
     if (!this.info.saved && qualifies(this.score)) {
@@ -518,8 +589,8 @@ export class GameOverScene {
   async activate(i) {
     audio.sfx('select');
     if (i === 0) {
-      const card = buildShareCard({ art: this.info, title: this.title, phrase: this.phrase, levelText: `NIVEL ${this.info.levelIndex + 1}: ${this.info.levelName}`, score: this.score });
-      const txt = `🤮 PIPI POTTER: me han pillado potando en ${this.info.levelName.toLowerCase()} (nivel ${this.info.levelIndex + 1}). "${this.phrase}" Puntos: ${this.score}. ¿Lo haces mejor?`;
+      const card = buildShareCard({ art: this.info, title: this.title, phrase: this.phrase, levelText: `NIVEL ${this.info.levelIndex + 1}: ${this.info.levelName}`, score: this.score, extra: `MOTE: ${this.mote.name}` });
+      const txt = `🤮 PIPI POTTER: me han pillado potando en ${this.info.levelName.toLowerCase()} (nivel ${this.info.levelIndex + 1}). "${this.phrase}" Nuevo mote: ${this.mote.name}. Puntos: ${this.score}. ¿Lo haces mejor?`;
       const r = await shareCanvas(card, txt, 'pipi-potter-gameover.png');
       this.msg = { text: r === 'fallback' ? 'IMAGEN DESCARGADA' : r === 'cancel' ? 'CANCELADO' : 'COMPARTIDO', t: 2 };
     }
@@ -532,7 +603,10 @@ export class GameOverScene {
     drawTextCentered(ctx, this.title, 80, 79, UI.red);
     let y = 88;
     for (const l of wrapText(this.phrase, 150)) { drawTextCentered(ctx, l, 80, y, UI.light); y += 7; }
-    drawTextCentered(ctx, `NIVEL ${this.info.levelIndex + 1} · PUNTOS ${this.score}`, 80, Math.max(y + 2, 111), UI.yellow);
+    y = Math.max(y + 2, 104);
+    drawTextCentered(ctx, `MOTE: ${this.mote.name}`, 80, y, UI.pink);
+    if (this.mote.isNew && Math.floor(this.t * 3) % 2) drawTextCentered(ctx, '¡NUEVO LOGRO!', 80, y - 8 < 97 ? 124 : y - 8, UI.green);
+    drawTextCentered(ctx, `NIVEL ${this.info.levelIndex + 1} · PUNTOS ${this.score}`, 80, Math.min(y + 9, 121), UI.yellow);
     const labels = ['COMPARTIR', 'REINTENTAR', 'MENÚ'];
     const ws = [52, 52, 44];
     let x = 2;
@@ -587,5 +661,49 @@ export class VictoryScene {
     drawTextCentered(ctx, 'LEYENDA DEL POTEO DISCRETO.', 80, 94, UI.pink);
     drawTextCentered(ctx, `PUNTOS: ${this.score}`, 80, 106, UI.yellow, 1);
     this.rects = [button(ctx, 'COMPARTIR', 16, 126, 60, this.sel === 0), button(ctx, 'MENÚ', 84, 126, 60, this.sel === 1)];
+  }
+}
+
+// ============================================================
+// Logros: los motes que te han ido poniendo
+export class LogrosScene {
+  constructor(app) { this.app = app; }
+  enter() { this.t = 0; this.sel = 0; this.got = unlockedMotes(); this.scroll = 0; }
+  update(dt) {
+    this.t += dt;
+    const tap = input.consumeTap();
+    if (input.pressed.b || hit(tap, this.backRect)) { audio.sfx('back'); this.app.setScene(new MenuScene(this.app)); return; }
+    if (tap && this.rowRects) { const i = this.rowRects.findIndex((r) => hit(tap, r)); if (i >= 0) { this.sel = this.scroll + i; audio.sfx('move'); } }
+    if (input.pressed.up) { this.sel = (this.sel + MOTES.length - 1) % MOTES.length; audio.sfx('move'); }
+    if (input.pressed.down) { this.sel = (this.sel + 1) % MOTES.length; audio.sfx('move'); }
+    const vis = 10;
+    if (this.sel < this.scroll) this.scroll = this.sel;
+    if (this.sel >= this.scroll + vis) this.scroll = this.sel - vis + 1;
+  }
+  render(ctx) {
+    bg(ctx, this.t);
+    centeredOutlined(ctx, 'LOGROS', 80, 3, UI.yellow, '#e03878', 2);
+    drawTextCentered(ctx, `MOTES: ${this.got.size}/${MOTES.length}`, 80, 19, UI.light);
+    panel(ctx, 2, 26, 156, 92);
+    this.rowRects = [];
+    for (let i = 0; i < 10; i++) {
+      const k = this.scroll + i;
+      const m = MOTES[k];
+      if (!m) break;
+      const y = 31 + i * 8;
+      const have = this.got.has(m[0]);
+      const sel = k === this.sel;
+      if (sel) { ctx.fillStyle = UI.dark; ctx.fillRect(4, y - 1, 152, 8); }
+      drawIcon(ctx, have ? 'star' : 'pukeEmpty', 6, y - 2);
+      drawText(ctx, have ? m[0] : '? ? ? ? ? ?', 16, y, have ? (sel ? UI.yellow : UI.light) : UI.grey);
+      this.rowRects.push({ x: 4, y: y - 1, w: 152, h: 8 });
+    }
+    // barra de scroll
+    ctx.fillStyle = UI.dark; ctx.fillRect(153, 30, 2, 86);
+    ctx.fillStyle = UI.grey; ctx.fillRect(153, 30 + Math.round((this.scroll / (MOTES.length - 10)) * 70), 2, 16);
+    const cur = MOTES[this.sel];
+    panel(ctx, 2, 118, 156, 12, UI.dark);
+    drawTextCentered(ctx, this.got.has(cur[0]) ? cur[1] : 'QUE TE PILLEN PARA DESBLOQUEARLO', 80, 121, this.got.has(cur[0]) ? UI.pink : UI.grey);
+    this.backRect = button(ctx, 'VOLVER', 50, 132, 60, false);
   }
 }

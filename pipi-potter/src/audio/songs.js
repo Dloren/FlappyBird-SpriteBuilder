@@ -4,20 +4,21 @@
 // Instrumentos por canal: lead/arp 'p25' | 'p12' | 'square' | 'sawtooth' | 'triangle'
 //                         bass 'triangle' | 'square' | 'sawtooth' | 'p25'
 export const SONGS = {
-  // Título: misterioso, en menor
+  // Título y menú: jingle techno travieso (pasitos de puntillas cromáticos)
   title: {
-    bpm: 108, loop: true, lead: 'p25', bass: 'triangle',
+    bpm: 124, loop: true, lead: 'p12', bass: 'square', arp: 'p25', bassVol: 0.13,
     leadTrack: [
-      'A4 - - - C5 - E5 - D5 - - - C5 - B4 -',
-      'A4 - - - E4 - - - G4 - A4 - - - . .',
-      'F4 - - - A4 - C5 - B4 - - - G#4 - E4 -',
-      'A4 - - - - - - - . . . . . . . .',
+      'E5 . . G5 . . F#5 . F5 . E5 . . . B4 .',
+      'C5 . . E5 . . D#5 . D5 . C5 . . . A4 .',
+      'E5 . . G5 . . F#5 . F5 . E5 . G5 . B5 .',
+      'A#5 . A5 . G5 . E5 . D#5 . E5 . . . . .',
     ],
     bassTrack: [
-      'A2 . A2 . A2 . A2 . A2 . A2 . G2 . G2 .',
-      'F2 . F2 . F2 . F2 . E2 . E2 . E2 . E2 .',
+      'E2 . E3 . E2 E2 . E3 G2 . G3 . A2 . B2 .',
+      'C2 . C3 . C2 C2 . C3 A1 . A2 . B1 . B2 .',
     ],
-    drums: ['k . . . s . . . k . k . s . . h'],
+    arpTrack: ['. . E4 . . . B4 . . . E4 . . . D5 .', '. . C4 . . . G4 . . . A4 . . . B4 .'],
+    drums: ['k . h . ks . h . k . h . ks . h o', 'k . h . ks . h . k . h k ks . s s'],
   },
 
   // Discoteca: techno oscuro 128 BPM, bajo ácido en semicorcheas

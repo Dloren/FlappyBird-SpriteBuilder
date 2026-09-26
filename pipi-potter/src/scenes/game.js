@@ -76,6 +76,16 @@ export class PlayScene {
   // ----------------- API usada por las entidades -----------------
   sfx(n) { audio.sfx(n); }
 
+  // ¿Ve este NPC alguna pota a la vez que a Pipi? (charco ya formado y cerca de Pipi)
+  puddleSeenBy(npc) {
+    const p = this.player;
+    for (const pd of this.puddles) {
+      if (pd.age < 0.4 || dist(pd.x, pd.y, p.x, p.y) > 40) continue;
+      if (npc.sees(this, pd.x, pd.y)) return true;
+    }
+    return false;
+  }
+
   // Algún amigo ha visto a Pipi: se reinicia el contador de "¿dónde está Pipi?"
   friendSawPlayer() { this.unseenT = 0; }
 
@@ -191,6 +201,7 @@ export class PlayScene {
   onPukeDone(p) {
     const f = p.facingVec();
     const pd = new Puddle(p.x + f.x * 9, p.y + f.y * 7 + 2);
+    p.stained = true;
     this.puddles.push(pd);
     this.stats.pukes++;
     audio.sfx('puke');
@@ -542,6 +553,7 @@ export class PlayScene {
         else if (Math.floor(this.time * 4) % 2 || n.state === S.SEARCH) bubble(UI.yellow, '?', UI.ink);
         break;
       case S.CHASE: bubble(UI.red, '!', UI.light); break;
+      case S.ALERT: bubble(UI.yellow, '!', UI.ink); break;
       case S.HUNT: if (Math.floor(this.time * 2) % 2) bubble(UI.pink, '?', UI.ink); break;
       case S.DISTRACTED: bubble(UI.light, '?', UI.grey); break;
       default:
@@ -595,7 +607,7 @@ export class PlayScene {
     ctx.fillStyle = UI.red; ctx.fillRect(x - 6, y - 3, 12, 16);
     drawText(ctx, '!', x - 2, y, UI.light, s);
     panel(ctx, 24, 116, 112, 15);
-    const txt = this.caughtReason === 'breath' ? '¡TE HA OLIDO EL ALIENTO!' : this.caughtReason === 'chase' ? '¡TE HAN ALCANZADO!' : this.caughtReason === 'staff' ? '¡TE HAN PILLADO!' : '¡TE HAN VISTO POTAR!';
+    const txt = this.caughtReason === 'breath' ? '¡TE HA OLIDO EL ALIENTO!' : this.caughtReason === 'chase' || this.caughtReason === 'staff' ? '¡TE HAN ALCANZADO!' : this.caughtReason === 'staff' ? '¡TE HAN PILLADO!' : '¡TE HAN VISTO POTAR!';
     drawTextCentered(ctx, txt, 80, 121, UI.yellow);
   }
 

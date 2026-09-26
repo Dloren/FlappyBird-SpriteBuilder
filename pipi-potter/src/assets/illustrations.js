@@ -43,7 +43,7 @@ export function drawGameOverArt(ctx, info, x, y, t) {
   // Pipi (x2), con cara verde y charco delante
   ctx.drawImage(puddleImg, px + 26, py + 22, 30, 14);
   const shake = Math.round(Math.sin(t * 20) * 0.6);
-  drawCharacter(ctx, pipiSpec(1), 'right', 0, px + shake, py, 2);
+  drawCharacter(ctx, pipiSpec(1, true), 'right', 0, px + shake, py, 2);
   // gotas de sudor
   if (Math.floor(t * 2) % 2) { R(ctx, px + 4, py + 6, 2, 3, '#a0e8ff'); R(ctx, px + 2, py + 10, 1, 2, '#a0e8ff'); }
 

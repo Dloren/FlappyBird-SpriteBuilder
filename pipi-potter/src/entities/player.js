@@ -192,7 +192,7 @@ export class Player {
   }
 
   draw(ctx, cam, time) {
-    const spec = pipiSpec(this.nausea);
+    const spec = pipiSpec(this.nausea, this.stained);
     const sheet = characterSheet(spec);
     let dir = this.dir, step = 0, ox = this.wobbleX, oy = 0;
     if (this.moving) step = 1 + (Math.floor(this.animT * 8) % 2);
