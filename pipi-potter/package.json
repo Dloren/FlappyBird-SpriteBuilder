@@ -7,9 +7,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build && node scripts/postbuild.mjs",
-    "test": "node scripts/selftest.mjs",
+    "test": "node scripts/validate-levels.mjs && npm run build && node scripts/soak.mjs",
     "cap:sync": "npx cap sync android",
-    "apk": "npm run build && npx cap sync android && cd android && ./gradlew assembleDebug && cp app/build/outputs/apk/debug/app-debug.apk ../../dist/pipi-potter.apk"
+    "apk": "npm run build && npx cap sync android && cd android && ./gradlew assembleDebug && cp app/build/outputs/apk/debug/app-debug.apk ../../dist/pipi-potter.apk",
+    "icons": "python3 scripts/make-icons.py"
   },
   "devDependencies": {
     "@capacitor/android": "^7.6.9",

@@ -157,7 +157,16 @@ export class NPC {
 
   // Comprueba si ve un punto (usa oclusores de la partida)
   sees(game, tx, ty) {
-    return canSee(this.level, this.x, this.eyeY, this.angle, this.coneHalf, this.coneRange, tx, ty, game.occluders, this);
+    return canSee(this.level, this.x, this.eyeY, this.angle, this.coneHalf, this.coneRange, tx, ty, this.nearOccluders(game), this);
+  }
+
+  // Oclusores (NPC-B) al alcance de su vista; se cachea por frame
+  nearOccluders(game) {
+    if (this._occFrame === game.frame) return this._occ;
+    const r = this.coneRange + 8;
+    this._occ = game.occluders.filter((o) => o !== this && Math.abs(o.x - this.x) < r && Math.abs(o.cy - this.eyeY) < r);
+    this._occFrame = game.frame;
+    return this._occ;
   }
 
   // ----------------- NPC-A -----------------
@@ -344,9 +353,9 @@ export class NPC {
     if (this.kind === 'A') this.updateA(dt, game); else this.updateB(dt, game);
     if (this.speech) { this.speech.t -= dt; if (this.speech.t <= 0) this.speech = null; }
     // cono (sólo NPC-A y trabajadores)
-    if (this.kind === 'A' || this.worker) {
-      this.cone = conePolygon(this.level, this.x, this.eyeY, this.angle, this.coneHalf, this.coneRange, game.occluders, this);
-    }
+    if ((this.kind === 'A' || this.worker) && game.nearView(this.x, this.y, this.coneRange + 8)) {
+      this.cone = conePolygon(this.level, this.x, this.eyeY, this.angle, this.coneHalf, this.coneRange, this.nearOccluders(game), this);
+    } else this.cone = null;
   }
 
   coneColor() {

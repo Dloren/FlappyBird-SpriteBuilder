@@ -1,0 +1,108 @@
+// NIVEL 4 — FIESTAS DEL PUEBLO
+import { look, HAIR, SKIN } from './level.js';
+
+export default {
+  id: 'pueblo',
+  name: 'FIESTAS DEL PUEBLO',
+  intro: 'VERBENA EN LA PLAZA. LA ORQUESTA TOCA PAQUITO EL CHOCOLATERO POR QUINTA VEZ. LOS CALIMOCHOS DE LA PEÑA HACEN EFECTO.',
+  music: 'pueblo',
+  palette: {
+    ink: '#1c140c', wallTop: '#b86848', wallFace: '#e8c898', wallLine: '#c8a070',
+    wood: '#a06838', woodDark: '#6a4020', woodLight: '#d09860', metal: '#a0a0b0', metalDark: '#383840',
+    accent: '#d83838', accent2: '#f8c838', leaf: '#489838', leafDark: '#2a6828', leafLight: '#80c860',
+    stone: '#c8b898', stoneLight: '#e8dcc0', water: '#4890e0', waterLight: '#b8e0f8', screen: '#302030',
+    car: '#3878c8', shadow: '#806850', void: '#140c10',
+  },
+  floors: {
+    '.': ['stone', '#d0b890', '#b89c74'],
+    ';': ['road', '#6a6470', '#585260', '#8a8490'],
+    ':': ['tiles', '#b88868', '#a07050'],
+    '_': ['stage', '#8a4a30', '#6a3420'],
+    ',': ['dirt', '#b89868', '#a08050'],
+  },
+  floorUnder: { 'U': ':', '=': '.', 'K': ';', 'X': ';', 'x': ';' },
+  map: [
+    '####################################',
+    '#;;;#######WWWWWWWWWWWWWW#######;;;#',
+    '#;;;#####..S______________S.####;;;#',
+    '#;;;#####..S______________S.####;;;#',
+    '#K;;#####B..................B###;;;#',
+    '#K;;#####....................###;;;#',
+    '#K;;#####..UUU..........UUU..###;;;#',
+    '#;;;#####..:::..........:::..###;;;#',
+    '#;;;#####..===...n.n....===..###;;;#',
+    '#;;;;;;;;....................###;;;#',
+    '#;;;#####.........cYc........;;;;;;#',
+    '#;;;#####....................###;;;#',
+    '#;;;#####..UUU..........UUU..###;;;#',
+    '#;;;#####..:::..........:::..###;;;#',
+    '#;;;#####..===..........===..###;;;#',
+    '#;;;;;;;;....................###;;;#',
+    '#;;;#####B.....AAAAAAAA.....B###;;;#',
+    '#;;;#####......AAAAAAAA......###;;;#',
+    '#;;;#####......AAAAAAAA......;;;;;;#',
+    '#;;;#####....................###;;K#',
+    '#;;;#####..n....n....n....n..###;;K#',
+    '#;;;#####O..O..O..O..O..O..O.###;;K#',
+    '#;;;#####::::::::::::::::::::###;;;#',
+    '#;;;###############;;###########;;;#',
+    '#;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;#',
+    '#;X;;;;;x;;;;;;;;;;;;;;;;;;x;;;;;X;#',
+    '#;;X#####;;X#######;;######X;;######',
+    '####################################',
+  ],
+  player: [18, 24],
+  npcs: [
+    {
+      kind: 'A', role: 'friend', name: 'TONI',
+      look: look({ style: 'short', hair: HAIR.black, skin: SKIN[2], beard: true, body: 'belly' }),
+      route: [[18, 5, 4, 'up'], [12, 9, 3, 'up'], [2, 10, 3, 'down'], [6, 15, 0], [17, 15, 3, 'up']],
+    },
+    {
+      kind: 'A', role: 'friend', name: 'MARI', label: 'AMIGA',
+      look: look({ style: 'long', hair: HAIR.red, skin: SKIN[0], body: 'dress' }),
+      route: [[26, 9, 3, 'up'], [33, 10, 3, 'down'], [33, 18, 2], [26, 18, 0], [22, 11, 3, 'left']],
+    },
+    {
+      kind: 'A', role: 'friend', name: 'PACO',
+      look: look({ style: 'cap', cap: '#d83838', hair: HAIR.brown, skin: SKIN[1] }),
+      route: [[14, 22, 4, 'up'], [3, 24, 3, 'left'], [2, 15, 0], [10, 15, 2, 'right'], [22, 22, 3, 'up']],
+    },
+    {
+      kind: 'A', role: 'partner', name: 'PAULA',
+      look: look({ style: 'long', hair: HAIR.dark, skin: SKIN[1], body: 'dress' }),
+      route: [[15, 11, 4, 'right'], [11, 9, 3, 'up'], [22, 20, 3, 'up'], [27, 15, 3, 'up'], [15, 11, 0]],
+    },
+    {
+      kind: 'A', role: 'family', name: 'TÍA PILI', label: 'TÍA',
+      look: look({ style: 'bun', hair: HAIR.grey, skin: SKIN[1], body: 'dress', shirt: '#f060a8', glasses: true }),
+      route: [[12, 20, 5, 'up'], [24, 24, 3], [32, 24, 3, 'up'], [24, 9, 2, 'up'], [12, 20, 0]],
+    },
+    // ---- Staff: casetas y municipal ----
+    ...[[12, 7, 11], [25, 7, 24], [12, 13, 11], [25, 13, 24]].map(([x, y, zx], i) => ({
+      kind: 'B', role: 'stall', name: 'CASETA', worker: true, zone: [[zx, y, 3, 3]], behavior: 'guard', at: [x, y], dir: 'down',
+      look: look({ style: ['short', 'bun', 'bald', 'long'][i], body: i % 2 ? 'dress' : 'belly', shirt: '#f8f8f8', hair: [HAIR.black, HAIR.grey, SKIN[2], HAIR.brown][i], skin: SKIN[i + 1] }),
+    })),
+    {
+      kind: 'B', role: 'police', name: 'MUNICIPAL', worker: true, zone: [[9, 9, 20, 3]],
+      look: look({ style: 'cap', cap: '#283870', shirt: '#4868b0', pants: '#283870', hair: HAIR.black, badge: '#f8c838', body: 'belly' }),
+      route: [[10, 10, 3, 'right'], [28, 10, 3, 'left'], [30, 18, 0], [28, 19, 2, 'left'], [10, 19, 2, 'right']],
+    },
+    // ---- Orquesta ----
+    { kind: 'B', role: 'band', behavior: 'dance', at: [14, 2], dir: 'down', look: look({ shirt: '#d83838', hair: HAIR.black, bowtie: '#181818' }) },
+    { kind: 'B', role: 'band', behavior: 'dance', at: [19, 3], dir: 'down', look: look({ style: 'long', body: 'dress', shirt: '#f8c838', hair: HAIR.blond }) },
+    { kind: 'B', role: 'band', behavior: 'dance', at: [24, 2], dir: 'down', look: look({ shirt: '#d83838', hair: HAIR.grey, bowtie: '#181818', body: 'belly' }) },
+    // ---- Vecinos ----
+    ...[[13, 4], [16, 5], [20, 4], [23, 5], [11, 5], [26, 4], [15, 6], [21, 6]].map(([x, y], i) => ({
+      kind: 'B', role: 'neighbor', behavior: 'dance', at: [x, y], dir: 'up',
+      look: look({ style: ['short', 'bun', 'cap', 'long', 'bald'][i % 5], body: i % 2 ? 'dress' : 'normal', cap: '#58a048', shirt: ['#58a8d8', '#f8c838', '#58a048', '#a858a8', '#e87838', '#f8f8f8', '#3848a8', '#c83838'][i], hair: [HAIR.black, HAIR.grey, HAIR.brown, HAIR.blond, SKIN[2]][i % 5], skin: SKIN[i % 5] }),
+    })),
+    ...[[17, 9, 'down'], [19, 9, 'down'], [11, 21, 'up'], [22, 21, 'up']].map(([x, y, d], i) => ({
+      kind: 'B', role: 'neighbor', behavior: 'static', at: [x, y], dir: d,
+      look: look({ style: ['bald', 'bun', 'short', 'long'][i], body: i % 2 ? 'dress' : 'belly', shirt: ['#686868', '#282828', '#486848', '#b89838'][i], hair: [SKIN[1], HAIR.white, HAIR.grey, HAIR.black][i], skin: SKIN[i] }),
+    })),
+    { kind: 'B', role: 'kid', route: [[10, 17, 0], [28, 17, 0], [28, 15, 0], [10, 15, 0]], look: look({ kid: true, shirt: '#f8c838', hair: HAIR.black }) },
+    { kind: 'B', role: 'kid', route: [[28, 20, 0], [10, 20, 1], [10, 18, 0], [28, 18, 1]], look: look({ kid: true, style: 'long', body: 'dress', shirt: '#58c8e8', hair: HAIR.blond }) },
+  ],
+  items: [['pitillo', 1, 26], ['chicle', 34, 1], ['sobras', 10, 22], ['mechero', 32, 25]],
+};

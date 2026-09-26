@@ -75,6 +75,23 @@ const app = {
   toMenu() { this.setScene(new MenuScene(this)); },
 };
 window.__pipi = app; // útil para depurar desde la consola
+window.__pipiInput = input;
+// Vista previa de un nivel completo (depuración): __pipi.preview(i) → dataURL
+app.preview = (i) => {
+  const sc = new PlayScene(app, i);
+  sc.enter();
+  const c = document.createElement('canvas');
+  c.width = sc.level.pw; c.height = sc.level.ph;
+  const g = c.getContext('2d');
+  g.drawImage(sc.mapCanvas, 0, 0);
+  sc.nearView = () => true;
+  for (const n of sc.npcs) { n.update(0.016, sc); if (n.cone) sc.drawCone(g, n, { x: 0, y: 0 }); }
+  for (const it of sc.pickups) it.draw(g, { x: 0, y: 0 }, 0);
+  sc.drawZones(g, { x: 0, y: 0 });
+  for (const e of [...sc.npcs, sc.player].sort((a, b) => a.y - b.y)) e.draw(g, { x: 0, y: 0 }, 0);
+  audio.stopMusic();
+  return c.toDataURL();
+};
 
 input.attach(canvas, document.getElementById('controls'));
 input.onFirstInteraction = () => audio.init();

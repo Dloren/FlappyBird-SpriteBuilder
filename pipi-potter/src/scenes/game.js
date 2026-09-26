@@ -73,6 +73,9 @@ export class PlayScene {
 
   // ----------------- API usada por las entidades -----------------
   sfx(n) { audio.sfx(n); }
+  nearView(x, y, m) {
+    return x > this.cam.x - m && x < this.cam.x + SCREEN_W + m && y > this.cam.y - m && y < this.cam.y + VIEW_H + m + 16;
+  }
   playerHidden() { return this.clouds.some((c) => c.contains(this.player.x, this.player.y - 4)); }
   displayScore() { return this.app.run.score + this.stats.sobras; }
 
@@ -315,6 +318,7 @@ export class PlayScene {
 
   updateWorld(dt, controls) {
     this.time += dt;
+    this.frame = (this.frame || 0) + 1;
     const p = this.player;
     if (controls) this.stats.time += dt;
     if (controls) p.update(dt, this);
@@ -625,7 +629,7 @@ export class PlayScene {
         drawIcon(ctx, e.id, 23, y - 2);
         const eq = this.player.equipped === e.id;
         drawText(ctx, `${ITEM_NAMES[e.id]} X${this.player.inventory[e.id]}`, 33, y, sel ? UI.yellow : UI.light);
-        if (eq) drawText(ctx, '[B]', 118, y, UI.cyan);
+        if (eq) drawText(ctx, '(B)', 118, y, UI.cyan);
         this.pauseRects.push({ x: 14, y: y - 3, w: 132, h: 10 });
         y += 10;
       } else {

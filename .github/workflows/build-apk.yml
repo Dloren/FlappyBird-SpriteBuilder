@@ -1,0 +1,74 @@
+name: Build Pipi Potter APK
+
+on:
+  push:
+    paths:
+      - 'pipi-potter/**'
+      - '.github/workflows/build-apk.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+env:
+  PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: '1'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: pipi-potter
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: pipi-potter/package-lock.json
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Instalar dependencias
+        run: npm ci
+
+      - name: Build web (HTML único)
+        run: npm run build
+
+      - name: Sincronizar Capacitor
+        run: npx cap sync android
+
+      - name: Compilar APK debug
+        working-directory: pipi-potter/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Copiar APK a dist/
+        run: cp android/app/build/outputs/apk/debug/app-debug.apk ../dist/pipi-potter.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pipi-potter
+          path: |
+            dist/pipi-potter.apk
+            dist/pipi-potter.html
+
+      - name: Publicar en Releases
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: pipi-potter-build-${{ github.run_number }}
+          name: Pipi Potter (build ${{ github.run_number }})
+          body: |
+            APK de Android (debug) y HTML autocontenido de Pipi Potter.
+            Rama: ${{ github.ref_name }} · Commit: ${{ github.sha }}
+          prerelease: true
+          files: |
+            dist/pipi-potter.apk
+            dist/pipi-potter.html

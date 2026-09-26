@@ -401,7 +401,15 @@ export function renderMap(level) {
       const ch = level.charAt(tx, ty);
       const x = tx * TILE, y = ty * TILE;
       if (TILES[ch]) {
-        const under = level.floorUnder?.[ch] || '.';
+        let under = level.floorUnder?.[ch];
+        if (!under) {
+          // por defecto, el suelo de un vecino transitable
+          for (const [dx, dy] of [[0, 1], [0, -1], [-1, 0], [1, 0]]) {
+            const n = level.charAt(tx + dx, ty + dy);
+            if (n !== null && !TILES[n] && level.floors[n] && !isAnimated(level, n)) { under = n; break; }
+          }
+        }
+        under = under || '.';
         drawFloor(g, x, y, tx, ty, level.floors[under] || baseFloor);
         drawProp(g, ch, x, y, tx, ty, pal, level);
       } else {

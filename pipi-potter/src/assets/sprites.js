@@ -285,9 +285,55 @@ function paintRows(g, rows, spec, ox, oy, mirror) {
 export const DIRS = ['down', 'up', 'left', 'right'];
 const sheetCache = new Map();
 
+// Perro (NPC-B de la barbacoa)
+const DOG = {
+  down: [
+    '................', '................', '................', '................',
+    '.....o....o.....', '....ofo..ofo....', '....offffffo....', '....ofefffefo...',
+    '....offfnnffo...', '.....offffoo....', '....offssffo....', '....offssffo....',
+    '....offffffo....', '....off..ffo....', '....oo....oo....', '................',
+  ],
+  up: [
+    '................', '................', '................', '................',
+    '.....o....o.....', '....ofo..ofo....', '....offffffo....', '....offffffo....',
+    '....offffffo....', '.....offffo.....', '....offffffo....', '....offssffo....',
+    '....offffffo....', '....off..ffo....', '....oo.oo.oo....', '.......oo.......',
+  ],
+  right: [
+    '................', '................', '................', '................',
+    '..........oo....', '.........ofo....', '..o......offfo..', '.ofo....offeffoo',
+    '..offooofffffnno', '...offffffffoo..', '...offssssffo...', '...offssssffo...',
+    '...offo..offo...', '...oo.....oo....', '................', '................',
+  ],
+};
+const DOG_STEP = {
+  right: ['...offo..offo...', '..offo....offo..', '....offooffo....'],
+  down: ['....off..ffo....', '....off...fo....', '....of...ffo....'],
+};
+function dogSheet(spec) {
+  const [c, g] = makeCanvas(48, 64);
+  const col = { o: spec.outline, f: spec.fur, s: spec.spot || spec.fur, e: spec.outline, n: '#302020' };
+  DIRS.forEach((dir, di) => {
+    for (let st = 0; st < 3; st++) {
+      const d = dir === 'left' ? 'right' : dir;
+      const rows = DOG[d].slice();
+      if (d === 'right') rows[12] = DOG_STEP.right[st];
+      else rows[13] = DOG_STEP.down[st];
+      for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
+        const k = col[rows[y][x]];
+        if (!k) continue;
+        g.fillStyle = k;
+        g.fillRect(st * 16 + (dir === 'left' ? 15 - x : x), di * 16 + y, 1, 1);
+      }
+    }
+  });
+  return c;
+}
+
 export function characterSheet(spec) {
   const key = JSON.stringify(spec);
   if (sheetCache.has(key)) return sheetCache.get(key);
+  if (spec.dog) { const d = dogSheet(spec); sheetCache.set(key, d); return d; }
   const [c, g] = makeCanvas(16 * 3, 16 * 4);
   DIRS.forEach((dir, di) => {
     for (let s = 0; s < 3; s++) {

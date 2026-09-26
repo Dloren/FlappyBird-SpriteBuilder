@@ -14,7 +14,6 @@ function frame(g) {
   // bisel
   g.fillStyle = '#2a2236'; g.fillRect(6, 18, W - 12, 170);
   g.fillStyle = '#e03838'; g.fillRect(10, 24, 3, 3); // LED
-  drawText(g, 'POWER', 8, 30, '#8a80a0');
   drawTextCentered(g, 'PIPI POTTER', W / 2, 7, UI.yellow, 1, '#301848');
   // rejilla de altavoz
   g.fillStyle = '#4a3068';
