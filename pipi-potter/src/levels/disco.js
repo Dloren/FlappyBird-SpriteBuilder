@@ -117,6 +117,8 @@ export default {
     { kind: 'B', role: 'crowd', behavior: 'static', at: [7, 18], dir: 'left', look: look({ style: 'long', shirt: '#f8f8f8', hair: HAIR.black, skin: SKIN[3], body: 'dress' }) },
   ],
   items: [
-    ['pitillo', 27, 20], ['pitillo', 22, 13], ['pitillo', 27, 17], ['pitillo', 9, 2], ['sobras', 13, 2], ['mechero', 28, 15], ['botella', 2, 23], ['chicle', 27, 3],
+    // 5 pitis escondidos
+    ['pitillo', 9, 1], ['pitillo', 5, 3], ['pitillo', 28, 11], ['pitillo', 3, 24], ['pitillo', 28, 3],
+    ['sobras', 13, 2], ['mechero', 28, 15], ['botella', 2, 23],
   ],
 };

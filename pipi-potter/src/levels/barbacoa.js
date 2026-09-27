@@ -56,12 +56,22 @@ export default {
   player: [26, 12],
   npcs: [
     {
-      kind: 'A', role: 'family', name: 'PEPE', label: 'TÍO',
+      kind: 'A', role: 'family', name: 'PRIMO', label: 'PRIMO',
+      look: look({ style: 'cap', cap: '#3a3a44', hair: HAIR.black, skin: SKIN[2] }),
+      route: [[31, 13, 3, 'left'], [32, 26, 3, 'up'], [16, 26, 2, 'up'], [1, 21, 3, 'right'], [10, 17, 1]],
+    },
+    {
+      kind: 'A', role: 'family', name: 'TÍA', label: 'TÍA',
+      look: look({ style: 'bun', hair: HAIR.red, skin: SKIN[1], body: 'dress', glasses: true }),
+      route: [[1, 12, 3, 'right'], [7, 20, 2], [4, 24, 3, 'down'], [20, 24, 2], [28, 20, 2, 'down'], [16, 12, 2]],
+    },
+    {
+      kind: 'A', role: 'family', name: 'TÍO', label: 'TÍO',
       look: look({ style: 'short', hair: HAIR.grey, skin: SKIN[2], body: 'belly', mustache: true, glasses: true }),
       route: [[28, 5, 5, 'up'], [22, 6, 0], [4, 2, 4, 'up'], [7, 12, 4, 'down'], [28, 11, 0]],
     },
     {
-      kind: 'A', role: 'family', name: 'LORE', label: 'PRIMA',
+      kind: 'A', role: 'family', name: 'PRIMA', label: 'PRIMA',
       look: look({ style: 'bun', hair: HAIR.red, skin: SKIN[0], body: 'dress' }),
       route: [[31, 15, 4, 'left'], [11, 22, 3, 'left'], [29, 24, 3, 'up'], [20, 21, 2]],
     },
@@ -75,27 +85,27 @@ export default {
       route: [[5, 14, 5, 'up'], [12, 2, 4, 'up'], [10, 6, 0], [18, 3, 4, 'up'], [10, 12, 0], [8, 14, 3, 'up']],
     },
     {
-      kind: 'A', role: 'inlaw', name: 'ANTONIO', label: 'SUEGRO',
+      kind: 'A', role: 'inlaw', name: 'SUEGRO', label: 'SUEGRO',
       look: look({ style: 'bald', hair: SKIN[1], skin: SKIN[1], body: 'belly', mustache: true, shirt: '#f060a8' }),
       route: [[16, 14, 6, 'up'], [26, 7, 5, 'up'], [19, 14, 2, 'down'], [16, 12, 3, 'down']],
     },
     {
-      kind: 'A', role: 'inlaw', name: 'MERCHE', label: 'SUEGRA',
+      kind: 'A', role: 'inlaw', name: 'SUEGRA', label: 'SUEGRA',
       look: look({ style: 'bun', hair: HAIR.grey, skin: SKIN[0], body: 'dress', glasses: true }),
       route: [[10, 2, 6, 'up'], [3, 2, 3, 'left'], [9, 12, 2, 'down'], [4, 12, 5, 'down'], [12, 7, 0]],
     },
     {
-      kind: 'A', role: 'family', name: 'KEVIN', label: 'CUÑADO',
+      kind: 'A', role: 'family', name: 'CUÑADO', label: 'CUÑADO',
       look: look({ style: 'cap', cap: '#f8f8f8', hair: HAIR.black, skin: SKIN[2], beard: true }),
       route: [[19, 17, 5, 'right'], [14, 19, 3, 'up'], [10, 23, 3, 'left'], [29, 8, 4, 'up'], [24, 12, 0]],
     },
     {
-      kind: 'A', role: 'family', name: 'VANESA', label: 'CUÑADA',
+      kind: 'A', role: 'family', name: 'CUÑADA', label: 'CUÑADA',
       look: look({ style: 'long', hair: HAIR.blond, skin: SKIN[5], body: 'dress' }),
       route: [[30, 18, 6, 'left'], [25, 21, 2], [10, 14, 4, 'up'], [4, 7, 3, 'down'], [15, 12, 0]],
     },
     {
-      kind: 'A', role: 'family', name: 'MARUJA', label: 'ABUELA',
+      kind: 'A', role: 'family', name: 'ABUELA', label: 'ABUELA',
       look: look({ style: 'bun', hair: HAIR.white, skin: SKIN[0], body: 'dress', glasses: true, shirt: '#f060a8' }),
       route: [[5, 21, 6, 'down'], [12, 21, 0], [3, 14, 6, 'up'], [7, 20, 0]],
     },
@@ -107,5 +117,8 @@ export default {
     { kind: 'B', role: 'dog', name: 'TOBY', route: [[20, 13, 2], [9, 16, 1], [15, 24, 2], [27, 22, 1], [28, 12, 2]],
       look: { dog: true, outline: '#2a1c14', fur: '#c88848', spot: '#f0e0c8' } },
   ],
-  items: [['chicle', 30, 23], ['pitillo', 31, 2], ['pitillo', 3, 26], ['pitillo', 24, 9], ['botella', 1, 26]],
+  items: [
+    ['pitillo', 32, 4], ['pitillo', 19, 4], ['pitillo', 6, 10], ['pitillo', 9, 25], ['pitillo', 32, 25],
+    ['botella', 1, 26],
+  ],
 };

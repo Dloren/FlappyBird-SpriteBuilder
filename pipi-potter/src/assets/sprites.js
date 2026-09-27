@@ -349,6 +349,15 @@ export function characterSheet(spec) {
         const bx = dir === 'down' ? 9 : dir === 'right' ? 9 : 6;
         g.fillRect(s * 16 + bx, di * 16 + (spec.kid ? 12 : 11), 2, 2);
       }
+      if (spec.tie && dir !== 'up') {
+        // camisa blanca + corbata (traje de oficina)
+        const tx = dir === 'down' ? 7 : dir === 'right' ? 9 : 6;
+        g.fillStyle = '#f0f0f0';
+        g.fillRect(s * 16 + tx, di * 16 + 9, 2, 1);
+        g.fillStyle = spec.tie;
+        g.fillRect(s * 16 + tx, di * 16 + 10, 2, 1);
+        g.fillRect(s * 16 + tx + (dir === 'left' ? 1 : 0), di * 16 + 11, 1, 2);
+      }
       if (spec.bowtie && dir === 'down') {
         g.fillStyle = spec.bowtie;
         g.fillRect(s * 16 + 6, di * 16 + 9, 4, 1);
@@ -476,6 +485,28 @@ function pipiSheet(spec) {
   });
   return c;
 }
+
+// Retrato de Pipi (intro): modelo de la imagen del icono, con la peineta
+export const PORTRAIT = [
+  '...oooooooo.......',
+  '..ohhhhhhhhoo.....',
+  '.ohhdhhhhhhhho....',
+  'ohhhhdhhhhhhhho...',
+  'ohhhhhddhhhhhho...',
+  'ohhsssshlhhhhho...',
+  'ohsssssshhhhho....',
+  'ohssssssssssho....',
+  'shssessssesshs.o..',
+  'ohssmmmmmmsshooso.',
+  '.ossmssssmsso.oso.',
+  '..ossssssssso.oso.',
+  '.ottoossootttoosoo',
+  'osttttttttttosssso',
+  'osttttttttttosssso',
+  'olttttttttttoosso.',
+  'olttttttttttootto.',
+  '.oooooooooooo.....',
+];
 
 export const PIPI_BASE = {
   pipi: true,

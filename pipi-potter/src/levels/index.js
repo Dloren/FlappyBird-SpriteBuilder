@@ -2,7 +2,7 @@
 import disco from './disco.js';
 import festival from './festival.js';
 import boda from './boda.js';
-import pueblo from './pueblo.js';
+import cena from './cena.js';
 import barbacoa from './barbacoa.js';
 
-export const LEVELS = [disco, festival, boda, pueblo, barbacoa];
+export const LEVELS = [disco, festival, boda, cena, barbacoa];

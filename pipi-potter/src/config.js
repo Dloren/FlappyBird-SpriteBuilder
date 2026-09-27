@@ -34,6 +34,7 @@ export const CONFIG = {
     autoTime: 1.4,             // pota automática al 100 %
     minNausea: 0.5,            // no se puede potar por debajo de esta náusea
     pukesToWin: 3,
+    escapeCountdown: 10,       // tras la 3ª pota, aguanta 10 s sin que te pillen
     puddleRadius: 6,
   },
 
@@ -64,7 +65,7 @@ export const CONFIG = {
     npcBReactCooldown: 3,
     nauseaSuspicion: 0.5,      // NPC-A sólo sospechan si la náusea supera esto
     staffNauseaSuspicion: 0.75,// el staff, a partir de esto
-    huntAfter: 30,             // s sin que ningún amigo te vea → salen a buscarte
+    huntAfter: 15,             // s sin que ningún amigo te vea → salen a buscarte
     huntDuration: 25,          // lo que dura una batida
     huntRepath: 3,
     hunters: 2,                // cuántos salen a buscarte
@@ -72,6 +73,11 @@ export const CONFIG = {
     chaseMax: 15,              // se cansan de perseguir
     chaseGiveUp: 3,            // s sin verte antes de rendirse
     catchDistance: 10,         // si llegan a esta distancia, te pillan
+    lostSearchTime: 4,         // tras perderte en una persecución, buscan donde te vieron
+    markedSpeedMul: 1.45,      // con "?" permanente (vieron una pota) van más rápido
+    inspectEvery: [12, 24],    // cada cuánto se desvían a revisar una esquina lejana (s)
+    inspectLook: 2.2,          // lo que se quedan mirando la esquina
+    maxInspecting: 3,          // cuántos NPC-A a la vez revisando esquinas
   },
 
   items: {
@@ -91,6 +97,8 @@ export const CONFIG = {
     escapePenalty: 0.07,
     minFactor: 0.2,
     victoryBonus: 5000,
+    pitilloBonus: 300,         // por cada piti conservado al acabar el nivel
+    pitillosPerLevel: 5,
   },
 
   npcSpeed: { a: 30, b: 24, search: 40, dog: 50 },

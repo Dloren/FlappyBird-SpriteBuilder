@@ -48,7 +48,7 @@ const app = {
     try { if (i > this.unlocked()) localStorage.setItem('pp_unlocked', String(Math.min(i, LEVELS.length - 1))); } catch (_) { /* noop */ }
   },
   newRun(idx) {
-    this.run = { score: 0, levelIndex: idx, levelItems: { ...CONFIG.player.startItems }, startScore: 0, levelStartItems: null };
+    this.run = { score: 0, levelIndex: idx, startIndex: idx, cleared: 0, levelItems: { ...CONFIG.player.startItems }, startScore: 0, levelStartItems: null };
     this.startLevel(idx);
   },
   startLevel(idx) { this.run.levelIndex = idx; this.setScene(new LevelIntroScene(this, idx)); },
@@ -59,6 +59,7 @@ const app = {
   },
   levelCleared(stats, inventory) {
     this.run.levelItems = { ...inventory };
+    this.run.cleared = (this.run.cleared || 0) + 1;
     this.unlock(this.run.levelIndex + 1);
     this.setScene(new SummaryScene(this, this.run.levelIndex, stats));
   },

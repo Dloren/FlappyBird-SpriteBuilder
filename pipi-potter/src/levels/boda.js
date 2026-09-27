@@ -55,6 +55,11 @@ export default {
   player: [12, 15],
   npcs: [
     {
+      kind: 'A', role: 'friend', name: 'F8',
+      look: look({ style: 'short', hair: HAIR.brown, skin: SKIN[2], bowtie: '#282838' }),
+      route: [[1, 17, 2, 'right'], [3, 25, 3, 'up'], [20, 25, 2, 'up'], [32, 17, 3, 'left'], [25, 8, 2, 'down']],
+    },
+    {
       kind: 'A', role: 'friend', name: 'F6',
       look: look({ style: 'short', hair: HAIR.black, skin: SKIN[2], shirt: '#f060a8', bowtie: '#282838' }),
       route: [[16, 6, 4, 'left'], [19, 5, 3, 'right'], [6, 19, 3], [12, 15, 1], [16, 6, 0]],
@@ -86,7 +91,7 @@ export default {
       route: [[8, 4, 5, 'up'], [2, 6, 4, 'up'], [12, 12, 4], [6, 17, 3, 'left'], [8, 4, 0]],
     },
     {
-      kind: 'A', role: 'inlaw', name: 'CARMEN', label: 'SUEGRA',
+      kind: 'A', role: 'inlaw', name: 'SUEGRA', label: 'SUEGRA',
       look: look({ style: 'bun', hair: HAIR.grey, skin: SKIN[0], body: 'dress', glasses: true }),
       route: [[12, 6, 6, 'down'], [19, 7, 3, 'right'], [10, 21, 4, 'down'], [12, 13, 0]],
     },
@@ -120,5 +125,8 @@ export default {
     { kind: 'B', role: 'kid', behavior: 'route', route: [[5, 16, 1], [20, 19, 0], [10, 25, 1], [2, 20, 0]],
       look: look({ kid: true, shirt: '#58a8d8', hair: HAIR.blond, pants: '#303850' }) },
   ],
-  items: [['pitillo', 30, 24], ['pitillo', 2, 9], ['pitillo', 25, 8], ['chicle', 2, 7], ['sobras', 6, 1], ['botella', 1, 26]],
+  items: [
+    ['pitillo', 2, 26], ['pitillo', 31, 26], ['pitillo', 32, 5], ['pitillo', 3, 7], ['pitillo', 4, 19],
+    ['sobras', 6, 1], ['botella', 1, 26],
+  ],
 };

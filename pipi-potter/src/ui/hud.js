@@ -37,7 +37,11 @@ export function drawHUD(ctx, g) {
   for (let i = 0; i < CONFIG.puke.pukesToWin; i++) drawIcon(ctx, i < g.stats.pukes ? 'puke' : 'pukeEmpty', 39 + i * 8, 2);
 
   // Tiempo
-  drawText(ctx, fmtTime(g.stats.time), 65, 4, UI.light);
+  drawText(ctx, fmtTime(g.stats.time), 64, 4, UI.light);
+
+  // Pitis conservados / escondidos en el nivel
+  drawIcon(ctx, 'pitillo', 83, 2);
+  drawText(ctx, `${p.inventory.pitillo || 0}/${CONFIG.score.pitillosPerLevel}`, 92, 4, UI.grey);
 
   // Puntuación
   const sc = String(g.displayScore());

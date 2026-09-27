@@ -7,6 +7,9 @@ export const FRIEND_NAMES = [
   ['MARIO', 'm'], ['DIEGO', 'm'], ['BOIX', 'm'], ['ILLO', 'm'], ['GUZME', 'm'],
 ];
 
+const PINKS = ['#f060a8', '#f070b0'];
+const CLOTHES = ['#34466a', '#5a6a3a', '#7a7a82', '#8a7a5a', '#6a2a34', '#4a6a90', '#6a4a32', '#3a3a44', '#c8c4b8', '#2e4a3a', '#7a5a6a', '#5a5a3a'];
+
 function shuffle(a) {
   const r = a.slice();
   for (let i = r.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [r[i], r[j]] = [r[j], r[i]]; }
@@ -21,7 +24,15 @@ export function resolveLevel(data, run, idx) {
   if (!run.friendNames[idx]) run.friendNames[idx] = shuffle(FRIEND_NAMES).slice(0, friends.length);
   const names = run.friendNames[idx];
   let k = 0;
-  const npcs = data.npcs.map((n) => {
+  // ropa normal y discreta para los NPC-A (nada de rosa del grupo)
+  let ci = idx * 3;
+  const dress = (n) => {
+    if (n.kind !== 'A' || n.look.tie) return n;
+    const sh = n.look.shirt;
+    if (sh && !PINKS.includes(sh)) return n;
+    return { ...n, look: { ...n.look, shirt: CLOTHES[ci++ % CLOTHES.length] } };
+  };
+  const npcs = data.npcs.map(dress).map((n) => {
     if (n.role !== 'friend') return n;
     const [name, g] = names[k++ % names.length];
     const lk = { ...n.look };

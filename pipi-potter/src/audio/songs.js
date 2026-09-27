@@ -121,6 +121,23 @@ export const SONGS = {
     drums: ['k . s . k . s . k . s . k s s .'],
   },
 
+  // Cena de empresa: lounge de restaurante en menor, con aires de karaoke triste
+  cena: {
+    bpm: 100, loop: true, lead: 'p25', bass: 'triangle', arp: 'p12',
+    leadTrack: [
+      'A4 - . C5 E5 - D5 C5 B4 - - - G#4 - . .',
+      'A4 - . C5 E5 - G5 F5 E5 - - - . . . .',
+      'F4 - . A4 C5 - B4 A4 G#4 - - - E4 - . .',
+      'A4 - - - - - . . . . . . . . . .',
+    ],
+    bassTrack: [
+      'A2 . C3 . E3 . C3 . A2 . E2 . G#2 . B2 .',
+      'F2 . A2 . C3 . A2 . E2 . G#2 . B2 . E3 .',
+    ],
+    arpTrack: ['. . A3 C4 . . A3 C4 . . G#3 B3 . . G#3 B3', '. . F3 A3 . . F3 A3 . . E3 G#3 . . E3 G#3'],
+    drums: ['k . h . s . h h k . h . s . h h'],
+  },
+
   // Barbacoa: tensión de sigilo, lenta y en menor
   barbacoa: {
     bpm: 96, loop: true, lead: 'p12', bass: 'triangle', arp: 'p25',

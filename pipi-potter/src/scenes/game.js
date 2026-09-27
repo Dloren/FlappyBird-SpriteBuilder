@@ -17,6 +17,8 @@ import { NPC, S } from '../entities/npc.js';
 import { Puddle, Footprint, SmokeCloud, Pickup, Projectile, Particle, NoiseRing } from '../entities/effects.js';
 import { drawHUD } from '../ui/hud.js';
 import { ROLE_TYPE } from '../ui/phrases.js';
+import { awardMerit, checkLord } from '../ui/motes.js';
+import { inCone, lineOfSight } from '../engine/vision.js';
 
 const ITEM_NAMES = { chicle: 'CHICLE', pitillo: 'PITILLO', sobras: 'SOBRAS', mechero: 'MECHERO', botella: 'BOTELLA' };
 const ITEM_DESC = {
@@ -46,7 +48,7 @@ export class PlayScene {
         const ch = this.level.charAt(x, y);
         if (isAnimated(this.level, ch)) this.animTiles.push([x, y, ch]);
       }
-    this.player = new Player(d.player[0], d.player[1], { ...(this.app.run.levelItems || CONFIG.player.startItems) });
+    this.player = new Player(d.player[0], d.player[1], this.levelIndex === LEVELS.length - 1 ? {} : { chicle: 1 });
     this.npcs = d.npcs.map((n) => new NPC(n, this.level, this.diff));
     this.occluders = this.npcs.filter((n) => n.kind === 'B');
     this.pickups = d.items.map(([t, x, y]) => new Pickup(t, x * TILE + 8, y * TILE + 10));
@@ -62,7 +64,9 @@ export class PlayScene {
     this.unseenT = 0;
     this.hunters = [];
     this.time = 0;
-    this.stats = { time: 0, pukes: 0, suspicions: 0, escapes: 0, sobras: 0, items: 0 };
+    this.stats = { time: 0, pukes: 0, suspicions: 0, escapes: 0, sobras: 0, items: 0, pitis: 0, pitisFound: 0 };
+    this.escapeT = null;
+    this.corners = this.findCorners();
     this.mode = 'play'; // play | paused | rules | caught | cleared
     this.modeT = 0;
     this.cam = { x: 0, y: 0 };
@@ -207,12 +211,61 @@ export class PlayScene {
     audio.sfx('puke');
     vibrate([200]);
     this.float(`POTA ${this.stats.pukes}/${CONFIG.puke.pukesToWin}`, p.x, p.y - 22, UI.green);
-    if (this.stats.pukes >= CONFIG.puke.pukesToWin && this.mode === 'play') {
-      this.mode = 'cleared';
-      this.modeT = 0;
-      audio.stopMusic();
-      setTimeout(() => audio.sfx('win'), 400);
+    // Méritos
+    if (this.npcs.some((n) => n.worker && n.inZone(p.x, p.y))) this.merit('METAL GEAR POTA');
+    const chasing = this.npcs.some((n) => n.state === S.CHASE);
+    if (!chasing && this.npcs.some((n) => n.kind === 'A' && dist(n.x, n.y, p.x, p.y) < 3 * TILE)) this.merit('TACTIC POTA');
+    // tras la 3ª pota: cuenta atrás para que aún le puedan pillar
+    if (this.stats.pukes >= CONFIG.puke.pukesToWin && this.mode === 'play' && this.escapeT === null) {
+      this.escapeT = CONFIG.puke.escapeCountdown;
+      this.message = { text: '¡AGUANTA SIN QUE TE PILLEN!', t: 2.5 };
     }
+  }
+
+  levelDone() {
+    this.mode = 'cleared';
+    this.modeT = 0;
+    this.stats.pitis = Math.min(CONFIG.score.pitillosPerLevel, this.player.inventory.pitillo || 0);
+    audio.stopMusic();
+    setTimeout(() => audio.sfx('win'), 400);
+  }
+
+  merit(name) {
+    if (awardMerit(name)) {
+      this.meritMsg = { text: `MÉRITO: ${name}`, t: 3 };
+      audio.sfx('win');
+      vibrate([60, 40, 60]);
+      if (checkLord()) this.meritMsg = { text: 'MÉRITO: LORD OF THE POTAS', t: 4 };
+    }
+  }
+
+  onChaseLost(npc) {
+    if (npc.kind === 'A' && (npc.chaseWhy === 'puke' || npc.chaseWhy === 'puddle')) this.merit('POTA FUGAZ');
+  }
+
+  // Esquinas de las salas (tiles transitables con muro en dos lados perpendiculares)
+  findCorners() {
+    const L = this.level, out = [];
+    for (let y = 0; y < L.h; y++) for (let x = 0; x < L.w; x++) {
+      if (!L.walkable(x, y)) continue;
+      const n = !L.walkable(x, y - 1), s = !L.walkable(x, y + 1), w = !L.walkable(x - 1, y), e = !L.walkable(x + 1, y);
+      if ((n || s) && (w || e)) out.push([x, y]);
+    }
+    return out;
+  }
+
+  // Elige una esquina / zona lejana para que un NPC-A la revise
+  pickInspectSpot(npc) {
+    if (this.npcs.filter((n) => n.inspect).length >= CONFIG.detection.maxInspecting) return null;
+    const L = this.level, cx = L.w / 2, cy = L.h / 2;
+    const tx = Math.floor(npc.x / TILE), ty = Math.floor(npc.y / TILE);
+    const cands = this.corners.filter(([x, y]) => { const d = Math.abs(x - tx) + Math.abs(y - ty); return d >= 4 && d <= 22; });
+    if (!cands.length) return null;
+    // más peso a lo que está lejos del centro (exteriores, rincones)
+    const weights = cands.map(([x, y]) => 1 + ((x - cx) ** 2 + (y - cy) ** 2));
+    let r = Math.random() * weights.reduce((a, b) => a + b, 0);
+    for (let i = 0; i < cands.length; i++) { r -= weights[i]; if (r <= 0) return cands[i]; }
+    return cands[cands.length - 1];
   }
 
   addFootprint(x, y, dir) {
@@ -334,6 +387,19 @@ export class PlayScene {
     p.speedMul = this.chased ? CONFIG.player.chaseBoost : 1;
     if (controls) p.update(dt, this);
     if (controls) this.updateHunt(dt);
+    if (controls && this.escapeT !== null && this.mode === 'play') {
+      const before = Math.ceil(this.escapeT);
+      this.escapeT -= dt;
+      if (Math.ceil(this.escapeT) !== before && this.escapeT > 0) audio.sfx('move');
+      if (this.escapeT <= 0) { this.levelDone(); return; }
+    }
+    if (controls && this.playerHidden()) {
+      // MAJESTIC POTA: oculto en el humo con 2+ conos de NPC-A encima
+      const watchers = this.npcs.filter((n) => n.kind === 'A' && inCone(n.x, n.eyeY, n.angle, n.coneHalf, n.coneRange, p.x, p.cy)
+        && lineOfSight(this.level, n.x, n.eyeY, p.x, p.cy, n.nearOccluders(this), n)).length;
+      if (watchers >= 2) this.merit('MAJESTIC POTA');
+    }
+    if (this.meritMsg) { this.meritMsg.t -= dt; if (this.meritMsg.t <= 0) this.meritMsg = null; }
     if (this.mode === 'caught') return;
 
     // pisar charco → rastro
@@ -346,6 +412,7 @@ export class PlayScene {
       if (!it.taken && dist(it.x, it.y, p.x, p.y) < 9) {
         it.taken = true;
         p.inventory[it.type] = (p.inventory[it.type] || 0) + 1;
+        if (it.type === 'pitillo') this.stats.pitisFound++;
         if (!p.equipped || !(p.inventory[p.equipped] > 0)) p.equipped = it.type;
         audio.sfx('pickup');
         vibrate(20);
@@ -465,6 +532,14 @@ export class PlayScene {
 
     drawHUD(ctx, this);
 
+    if (this.escapeT !== null && this.mode === 'play') {
+      panel(ctx, 44, HUD_H + 2, 72, 17, UI.ink, UI.yellow);
+      drawTextCentered(ctx, `¡AGUANTA! ${Math.max(0, Math.ceil(this.escapeT))}`, 80, HUD_H + 8, Math.floor(this.time * 4) % 2 ? UI.yellow : UI.light);
+    }
+    if (this.meritMsg) {
+      panel(ctx, 8, 104, 144, 17, UI.dark, UI.yellow);
+      drawTextCentered(ctx, this.meritMsg.text, 80, 110, UI.yellow);
+    }
     if (this.message) {
       ctx.globalAlpha = Math.min(1, this.message.t * 2);
       panel(ctx, 30, 60, 100, 17);
@@ -528,13 +603,11 @@ export class PlayScene {
   }
 
   drawNpcOverlay(ctx, n, cam) {
-    const x = Math.round(n.x - cam.x), y = Math.round(n.y - cam.y) - 24;
-    if (n.worker) {
-      // distintivo de trabajador (pillarte en su zona = expulsión)
-      ctx.fillStyle = UI.orange;
-      ctx.fillRect(x - 1, y + 6, 3, 1); ctx.fillRect(x, y + 5, 1, 3);
-    }
+    const x = Math.round(n.x - cam.x), y = Math.round(n.y - cam.y) - 33;
     if (n.kind !== 'A' && !n.worker) return;
+    // nombre (amigos y familia) o STAFF encima de la cabeza
+    const label = n.worker ? 'STAFF' : n.name;
+    if (label) drawTextCentered(ctx, label, x, Math.round(n.y - cam.y) - 21, n.worker ? UI.orange : UI.light, 1, UI.ink);
     const bubble = (fill, glyph, glyphCol, meter, meterCol) => {
       ctx.fillStyle = UI.ink; ctx.fillRect(x - 4, y - 2, 9, 10);
       ctx.fillStyle = fill; ctx.fillRect(x - 3, y - 1, 7, 8);
@@ -652,15 +725,15 @@ export class PlayScene {
     panel(ctx, 6, 8, 148, 128);
     drawTextCentered(ctx, 'REGLAS RÁPIDAS', 80, 14, UI.yellow);
     const lines = [
-      ['·', 'POTA 3 VECES SIN QUE TE VEAN.'],
+      ['·', 'POTA 3 VECES Y AGUANTA 10 S SIN QUE TE PILLEN.'],
       ['·', 'MANTÉN A PARA POTAR (NÁUSEA +50%).'],
       ['·', 'SOSPECHAN SI TU NÁUSEA PASA DEL 50% (STAFF: 75%).'],
       ['·', 'CON "!" CORREN A POR TI: SI TE ALCANZAN, GAME OVER.'],
       ['·', 'AL 100% POTAS SÍ O SÍ.'],
-      ['·', 'CONOS = VISIÓN DE TU GENTE (ROSA).'],
+      ['·', 'CONOS = VISIÓN (NOMBRE O STAFF ENCIMA).'],
       ['·', 'SI TE VEN POTAR: GAME OVER.'],
       ['·', 'STAFF: NO POTES EN SU ZONA.'],
-      ['·', 'SI NO TE VEN EN 30 S, SALEN A BUSCARTE.'],
+      ['·', 'SI NO TE VEN EN 15 S, SALEN A BUSCARTE.'],
       ['·', 'CON "?" TE HUELEN: ¡NO TE ACERQUES!'],
       ['·', 'B: USAR OBJETO. START: INVENTARIO.'],
     ];

@@ -6,7 +6,7 @@ import { audio } from '../audio/audio.js';
 import { UI, panel, cursor, button, makeCanvas } from '../engine/gfx.js';
 import { drawText, drawTextCentered, wrapText, textWidth } from '../engine/font.js';
 import { pick, fmtTime, clamp, rand } from '../engine/util.js';
-import { drawCharacter, pipiSpec, drawIcon, makePuddle, PIPI_ROWS } from '../assets/sprites.js';
+import { drawCharacter, pipiSpec, drawIcon, makePuddle, PORTRAIT } from '../assets/sprites.js';
 import { drawGameOverArt } from '../assets/illustrations.js';
 import { LEVELS } from '../levels/index.js';
 import { resolveLevel } from '../levels/names.js';
@@ -14,7 +14,7 @@ import { loadScores, qualifies, addScore, lastName, saveName, fmtDate } from '..
 import { shareCanvas } from '../engine/share.js';
 import { buildShareCard } from '../ui/sharecard.js';
 import { PHRASES, TYPE_TITLE, BREATH_PREFIX } from '../ui/phrases.js';
-import { MOTES, awardMote, unlockedMotes } from '../ui/motes.js';
+import { MOTES, MEDALS, MERITS, awardMote, awardMedal, unlockedMotes, unlockedMedals, unlockedMerits } from '../ui/motes.js';
 import { ITEM_NAMES, ITEM_DESC } from './game.js';
 
 // ---------- utilidades comunes ----------
@@ -65,17 +65,22 @@ export class TitleScene {
     audio.playMusic('title');
   }
   resetLoop() {
-    this.px = 170; this.state = 'walk'; this.st = 0; this.puddles = []; this.faceY = 150;
+    this.px = -20; this.state = 'walk'; this.st = 0; this.puddles = []; this.faceY = 150;
   }
   update(dt) {
     this.t += dt;
     this.st += dt;
     if (this.state === 'walk') {
-      // Pipi cruza de derecha a izquierda, pota a mitad y se va
-      this.px -= dt * 38;
-      if (this.px < 72 && this.puddles.length === 0) { this.state = 'puke'; this.st = 0; }
-      if (this.px < -20) { this.state = 'rise'; this.st = 0; }
-    } else if (this.state === 'puke' && this.st > 1.4) { this.puddles.push(this.px - 4); this.state = 'walk'; }
+      // Pipi entra por la izquierda, pota en el centro y sale por la derecha
+      this.px += dt * 38;
+      if (this.px > 72 && this.puddles.length === 0) { this.state = 'puke'; this.st = 0; this.retched = 0; audio.sfx('retch'); }
+      if (this.px > 170) { this.state = 'rise'; this.st = 0; }
+    } else if (this.state === 'puke') {
+      // mismo sonido que al potar en partida
+      if (this.st > 0.5 && this.retched === 0) { this.retched = 1; audio.sfx('retch'); }
+      if (this.st > 0.8 && this.retched === 1) { this.retched = 2; audio.sfx('puke'); }
+      if (this.st > 1.6) { this.puddles.push(this.px + 20); this.state = 'walk'; }
+    }
     else if (this.state === 'rise') {
       // su cara sube desde abajo y se queda bajo el título haciendo la peineta
       this.faceY = Math.max(FACE_Y, this.faceY - dt * 70);
@@ -107,19 +112,19 @@ export class TitleScene {
     ctx.fillStyle = '#3a2c50'; ctx.fillRect(0, 110, SCREEN_W, 34);
     ctx.fillStyle = '#4a3a60'; for (let x = 0; x < 160; x += 12) ctx.fillRect(x, 118, 6, 1);
     // Pipi paseando
-    for (const x of this.puddles) ctx.drawImage(this.puddleImg, Math.round(x - 9), 124);
+    if (this.state === 'walk' || this.state === 'puke') for (const x of this.puddles) ctx.drawImage(this.puddleImg, Math.round(x - 9), 124);
     if (this.state === 'walk' || this.state === 'puke') {
       const walking = this.state === 'walk';
       const step = walking ? 1 + (Math.floor(this.t * 8) % 2) : 0;
       const shake = this.state === 'puke' ? Math.round(Math.sin(this.st * 40)) : 0;
-      drawCharacter(ctx, pipiSpec(this.state === 'puke' ? 1 : 0.7, this.puddles.length > 0), 'left', step, Math.round(this.px) + shake, 110);
+      drawCharacter(ctx, pipiSpec(this.state === 'puke' ? 1 : 0.7, this.puddles.length > 0), 'right', step, Math.round(this.px) + shake, 110);
       if (this.state === 'puke' && this.st > 0.8) {
         ctx.fillStyle = '#8cb030';
-        for (let i = 0; i < 6; i++) ctx.fillRect(Math.round(this.px) + 1 - i, 118 + Math.round(i * i * 0.3) + (Math.floor(this.st * 20 + i) % 2), 1, 2);
+        for (let i = 0; i < 6; i++) ctx.fillRect(Math.round(this.px) + 14 + i, 118 + Math.round(i * i * 0.3) + (Math.floor(this.st * 20 + i) % 2), 1, 2);
       }
     }
     // cara gigante + peineta
-    if (this.faceY < 145) drawPipiFace(ctx, 48, Math.round(this.faceY), this.t);
+    if (this.faceY < 145) drawPipiFace(ctx, 53, Math.round(this.faceY), this.t);
     // logo
     const bob = Math.round(Math.sin(this.t * 3) * 1.5);
     centeredOutlined(ctx, 'PIPI', 80, 6 + bob, UI.yellow, '#e03878', 4);
@@ -131,47 +136,23 @@ export class TitleScene {
   }
 }
 
-// Cara de Pipi a lo grande (x4) con la mano haciendo la peineta
-const FACE_Y = 58;
-const HAND = [
-  '....ooo....',
-  '....oso....',
-  '....oso....',
-  '.oooosoooo.',
-  'ossosssosso',
-  'osssssssso.',
-  'osssssssso.',
-  '.osssssso..',
-  '..osssso...',
-  '..otttto...',
-  '..otttto...',
-];
+// Retrato de Pipi a lo grande (x3), modelo del icono, haciendo la peineta
+const FACE_Y = 60;
 export function drawPipiFace(ctx, x, y, t) {
-  const spec = pipiSpec(0.2);
-  const col = { o: spec.outline, e: spec.outline, h: spec.hair, d: spec.hairDark, s: spec.skin, m: spec.hairDark, t: spec.shirt, p: spec.pants, k: spec.shoes };
-  const rows = PIPI_ROWS.down.slice(0, 13);
+  const col = { o: '#2a1a16', h: '#6a4226', d: '#3c2416', s: '#f6c8a2', l: '#fadcc8', t: '#f0f0f4', e: '#140c10', m: '#4a2c1c' };
   const blink = Math.floor(t * 10) % 37 === 0;
-  const S = 4;
-  rows.forEach((r, ry) => {
-    for (let rx = 0; rx < 16; rx++) {
+  const wiggle = Math.floor(t * 5) % 2;
+  const S = 3;
+  PORTRAIT.forEach((r, ry) => {
+    for (let rx = 0; rx < r.length; rx++) {
       let c = r[rx];
       if (blink && c === 'e') c = 's';
       const k = col[c];
       if (!k) continue;
+      // la mano (columnas de la derecha) se mueve un poco
+      const dy = rx >= 13 && ry >= 8 && ry <= 12 && wiggle ? -1 : 0;
       ctx.fillStyle = k;
-      ctx.fillRect(x + rx * S, y + ry * S, S, S);
-    }
-  });
-  // guiño de ojo: brillo
-  // mano con la peineta, al lado de la cara
-  const hx = x + 58, hy = y + 10 + Math.round(Math.sin(t * 6) * 1.5);
-  const HS = 3;
-  HAND.forEach((r, ry) => {
-    for (let rx = 0; rx < r.length; rx++) {
-      const k = col[r[rx]];
-      if (!k) continue;
-      ctx.fillStyle = k;
-      ctx.fillRect(hx + rx * HS, hy + ry * HS, HS, HS);
+      ctx.fillRect(x + rx * S, y + (ry + dy) * S, S, S);
     }
   });
 }
@@ -238,7 +219,7 @@ export class LevelSelectScene {
 const RULE_PAGES = [
   {
     title: 'EL OBJETIVO',
-    text: 'PIPI SIEMPRE ACABA POTANDO CUANDO SALE DE FIESTA. EN CADA NIVEL DEBES POTAR 3 VECES SIN QUE TE VEAN TUS AMIGOS NI TU FAMILIA.',
+    text: 'PIPI SIEMPRE ACABA POTANDO CUANDO SALE DE FIESTA. EN CADA NIVEL DEBES POTAR 3 VECES SIN QUE TE VEAN TUS AMIGOS NI TU FAMILIA Y AGUANTAR 10 SEGUNDOS MÁS. BUSCA LOS 5 PITIS ESCONDIDOS: DAN PUNTOS SI LOS CONSERVAS.',
     draw(ctx, t) {
       drawCharacter(ctx, pipiSpec(0.9), 'down', 0, 56, 20, 2);
       for (let i = 0; i < 3; i++) drawIcon(ctx, 'puke', 104 + i * 10, 34);
@@ -270,11 +251,12 @@ const RULE_PAGES = [
   },
   {
     title: 'CONOS DE VISIÓN',
-    text: 'TU GENTE LLEVA CAMISETA ROSA Y VE LO QUE HAY EN SU CONO. MUROS, MUEBLES ALTOS Y OTRAS PERSONAS TAPAN LA VISIÓN. SI NADIE TE VE EN 30 S, SALEN A BUSCARTE. ¡Y OJO CON LOS PERROS CHIVATOS!',
+    text: 'TU GENTE LLEVA SU NOMBRE ENCIMA (EL STAFF, "STAFF") Y VE LO QUE HAY EN SU CONO. MUROS, MUEBLES ALTOS Y OTRAS PERSONAS TAPAN LA VISIÓN. SI NADIE TE VE EN 15 S, SALEN A BUSCARTE. REVISAN LAS ESQUINAS. ¡OJO CON LOS PERROS!',
     draw(ctx, t) {
       ctx.globalAlpha = 0.35; ctx.fillStyle = '#f8f0c0';
       ctx.beginPath(); ctx.moveTo(40, 34); ctx.lineTo(110, 14); ctx.lineTo(110, 54); ctx.closePath(); ctx.fill(); ctx.globalAlpha = 1;
-      drawCharacter(ctx, { style: 'long', body: 'dress', outline: '#1e1428', hair: '#e8c060', skin: '#f8d8c0', shirt: '#f060a8', pants: '#303850' }, 'right', 0, 28, 24);
+      drawCharacter(ctx, { style: 'long', body: 'dress', outline: '#1e1428', hair: '#e8c060', skin: '#f8d8c0', shirt: '#4a6a90', pants: '#303850' }, 'right', 0, 28, 24);
+      drawTextCentered(ctx, 'LAURA', 36, 17, UI.light, 1, UI.ink);
       drawCharacter(ctx, { style: 'short', body: 'normal', outline: '#1e1428', hair: '#201820', skin: '#d09060', shirt: '#38c8e8', pants: '#303850' }, 'left', 0, 70, 24);
       drawCharacter(ctx, pipiSpec(0.6), 'left', 0, 90, 24);
     },
@@ -429,8 +411,9 @@ export class LevelIntroScene {
     for (const l of wrapText(this.data.intro, 140)) { drawText(ctx, l, 10, y, UI.light); y += 7; }
     drawText(ctx, 'QUE NO TE PILLEN:', 6, 77, UI.pink);
     this.npcA.forEach((n, i) => {
-      const col = i % 4, row = Math.floor(i / 4);
-      const cx = 22 + col * 39, yy = 84 + row * 25;
+      const per = this.npcA.length > 8 ? 5 : 4;
+      const col = i % per, row = Math.floor(i / per);
+      const cx = per === 5 ? 17 + col * 31 : 22 + col * 39, yy = 84 + row * 25;
       drawCharacter(ctx, n.look, 'down', 0, cx - 8, yy);
       drawTextCentered(ctx, n.name, cx, yy + 17, n.role === 'friend' ? UI.light : UI.yellow);
     });
@@ -445,9 +428,10 @@ export function computeLevelScore(idx, stats) {
   const S = CONFIG.score;
   const base = S.levelBase * (idx + 1);
   const timeBonus = Math.round(S.timeBonusMax * Math.pow(0.5, stats.time / S.timeBonusHalfLife));
-  const subtotal = base + timeBonus + stats.sobras;
+  const pitiBonus = (stats.pitis || 0) * S.pitilloBonus;
+  const subtotal = base + timeBonus + stats.sobras + pitiBonus;
   const factor = Math.max(S.minFactor, 1 - S.suspicionPenalty * stats.suspicions - S.escapePenalty * stats.escapes);
-  return { base, timeBonus, sobras: stats.sobras, subtotal, factor, total: Math.round(subtotal * factor) };
+  return { base, timeBonus, sobras: stats.sobras, pitiBonus, subtotal, factor, total: Math.round(subtotal * factor) };
 }
 
 export class SummaryScene {
@@ -473,6 +457,7 @@ export class SummaryScene {
       ['BASE DEL NIVEL', `${sc.base}`, UI.light],
       [`TIEMPO ${fmtTime(s.time)}`, `+${sc.timeBonus}`, UI.light],
       ['SOBRAS', `+${sc.sobras}`, UI.light],
+      [`PITIS CONSERVADOS ${s.pitis || 0}/${CONFIG.score.pitillosPerLevel}`, `+${sc.pitiBonus}`, UI.light],
       ['SUBTOTAL', `${sc.subtotal}`, UI.cyan],
       [`SOSPECHAS X${s.suspicions}`, `-${Math.round(s.suspicions * CONFIG.score.suspicionPenalty * 100)}%`, UI.yellow],
       [`PILLADAS ZAFADAS X${s.escapes}`, `-${Math.round(s.escapes * CONFIG.score.escapePenalty * 100)}%`, UI.orange],
@@ -480,10 +465,10 @@ export class SummaryScene {
     ];
     const shown = Math.min(rows.length, Math.floor(this.t * 6));
     rows.slice(0, shown).forEach(([l, v, c], i) => {
-      const y = 31 + i * 11;
+      const y = 30 + i * 10;
       drawText(ctx, l, 10, y, c);
       drawText(ctx, v, 150 - textWidth(v), y, c);
-      if (i === 3 || i === 5) { ctx.fillStyle = UI.dark; ctx.fillRect(10, y + 8, 140, 1); }
+      if (i === 4 || i === 6) { ctx.fillStyle = UI.dark; ctx.fillRect(10, y + 7, 140, 1); }
     });
     if (shown >= rows.length) {
       drawText(ctx, 'PUNTUACIÓN', 10, 112, UI.yellow);
@@ -623,6 +608,9 @@ export class VictoryScene {
     this.app.run.score += CONFIG.score.victoryBonus;
     this.score = this.app.run.score;
     this.sel = 0;
+    this.count = this.app.run.cleared || LEVELS.length;
+    // Medalla sólo si has superado las 5 fiestas seguidas en esta partida
+    this.medal = this.count >= LEVELS.length ? awardMedal() : null;
     this.sparks = [];
     audio.playMusic('victory');
     if (!this.saved && qualifies(this.score)) {
@@ -647,7 +635,7 @@ export class VictoryScene {
   async activate(i) {
     audio.sfx('select');
     if (i === 0) {
-      const card = buildShareCard({ title: '¡5 FIESTAS SUPERADAS!', phrase: 'NADIE SE HA ENTERADO DE NADA. LEYENDA DEL POTEO DISCRETO.', levelText: 'JUEGO COMPLETADO', score: this.score });
+      const card = buildShareCard({ title: `¡${this.count} ${this.count === 1 ? 'FIESTA SUPERADA' : 'FIESTAS SUPERADAS'}!`, phrase: 'NADIE SE HA ENTERADO DE NADA.', levelText: 'JUEGO COMPLETADO', score: this.score, extra: this.medal ? `MEDALLA: ${this.medal.name}` : '' });
       await shareCanvas(card, `🏆 He completado PIPI POTTER con ${this.score} puntos sin que nadie me pillase potando. ¿Te atreves?`, 'pipi-potter-victoria.png');
     } else this.app.toMenu();
   }
@@ -656,54 +644,89 @@ export class VictoryScene {
     for (const s of this.sparks) { ctx.fillStyle = s.c; ctx.fillRect(Math.round(s.x), Math.round(s.y), 1, 1); }
     centeredOutlined(ctx, '¡VICTORIA!', 80, 8, UI.yellow, '#e03878', 3);
     drawCharacter(ctx, pipiSpec(0.2), 'down', Math.floor(this.t * 4) % 3, 64, 40, 2);
-    drawTextCentered(ctx, 'HAS SOBREVIVIDO A 5 FIESTAS', 80, 78, UI.light);
-    drawTextCentered(ctx, 'SIN QUE NADIE TE PILLE POTANDO.', 80, 86, UI.light);
-    drawTextCentered(ctx, 'LEYENDA DEL POTEO DISCRETO.', 80, 94, UI.pink);
+    drawTextCentered(ctx, `HAS SOBREVIVIDO A ${this.count} ${this.count === 1 ? 'FIESTA' : 'FIESTAS'}`, 80, 76, UI.light);
+    drawTextCentered(ctx, 'SIN QUE NADIE TE PILLE POTANDO.', 80, 84, UI.light);
+    if (this.medal) {
+      drawTextCentered(ctx, this.medal.name, 80, 93, UI.pink);
+      if (this.medal.isNew && Math.floor(this.t * 3) % 2) drawTextCentered(ctx, '¡NUEVA MEDALLA!', 80, 100, UI.green);
+    } else drawTextCentered(ctx, 'SUPERA LAS 5 SEGUIDAS: MEDALLA', 80, 93, UI.grey);
     drawTextCentered(ctx, `PUNTOS: ${this.score}`, 80, 106, UI.yellow, 1);
     this.rects = [button(ctx, 'COMPARTIR', 16, 126, 60, this.sel === 0), button(ctx, 'MENÚ', 84, 126, 60, this.sel === 1)];
   }
 }
 
 // ============================================================
-// Logros: los motes que te han ido poniendo
+// Logros: submenú con Motes, Medallas y Méritos
 export class LogrosScene {
   constructor(app) { this.app = app; }
-  enter() { this.t = 0; this.sel = 0; this.got = unlockedMotes(); this.scroll = 0; }
+  enter() {
+    this.t = 0;
+    const m = unlockedMotes().size, me = unlockedMedals().size, mr = unlockedMerits().size;
+    this.menu = new ListMenu([`MOTES ${m}/${MOTES.length}`, `MEDALLAS ${me}/${MEDALS.length}`, `MÉRITOS ${mr}/${MERITS.length}`, 'VOLVER'], 30, 44, 100);
+  }
+  update(dt) {
+    this.t += dt;
+    if (input.pressed.b) { audio.sfx('back'); this.app.setScene(new MenuScene(this.app)); return; }
+    const i = this.menu.update();
+    if (i === null) return;
+    if (i === 0) this.app.setScene(new AchievementList(this.app, 'MOTES', MOTES, unlockedMotes(), 'QUE TE PILLEN PARA DESBLOQUEARLO'));
+    if (i === 1) this.app.setScene(new AchievementList(this.app, 'MEDALLAS', MEDALS, unlockedMedals(), 'SUPERA LAS 5 FIESTAS SEGUIDAS'));
+    if (i === 2) this.app.setScene(new AchievementList(this.app, 'MÉRITOS', MERITS, unlockedMerits(), null, true));
+    if (i === 3) this.app.setScene(new MenuScene(this.app));
+  }
+  render(ctx) {
+    bg(ctx, this.t);
+    centeredOutlined(ctx, 'LOGROS', 80, 10, UI.yellow, '#e03878', 2);
+    this.menu.draw(ctx);
+    drawTextCentered(ctx, 'A: ELEGIR · B: VOLVER', 80, 128, UI.grey);
+  }
+}
+
+class AchievementList {
+  constructor(app, title, list, got, lockedHint, showHint) { Object.assign(this, { app, title, list, got, lockedHint, showHint }); }
+  enter() { this.t = 0; this.sel = 0; this.scroll = 0; }
   update(dt) {
     this.t += dt;
     const tap = input.consumeTap();
-    if (input.pressed.b || hit(tap, this.backRect)) { audio.sfx('back'); this.app.setScene(new MenuScene(this.app)); return; }
+    if (input.pressed.b || hit(tap, this.backRect)) { audio.sfx('back'); this.app.setScene(new LogrosScene(this.app)); return; }
     if (tap && this.rowRects) { const i = this.rowRects.findIndex((r) => hit(tap, r)); if (i >= 0) { this.sel = this.scroll + i; audio.sfx('move'); } }
-    if (input.pressed.up) { this.sel = (this.sel + MOTES.length - 1) % MOTES.length; audio.sfx('move'); }
-    if (input.pressed.down) { this.sel = (this.sel + 1) % MOTES.length; audio.sfx('move'); }
+    const n = this.list.length;
+    if (input.pressed.up) { this.sel = (this.sel + n - 1) % n; audio.sfx('move'); }
+    if (input.pressed.down) { this.sel = (this.sel + 1) % n; audio.sfx('move'); }
     const vis = 10;
     if (this.sel < this.scroll) this.scroll = this.sel;
     if (this.sel >= this.scroll + vis) this.scroll = this.sel - vis + 1;
   }
   render(ctx) {
     bg(ctx, this.t);
-    centeredOutlined(ctx, 'LOGROS', 80, 3, UI.yellow, '#e03878', 2);
-    drawTextCentered(ctx, `MOTES: ${this.got.size}/${MOTES.length}`, 80, 19, UI.light);
+    centeredOutlined(ctx, this.title, 80, 3, UI.yellow, '#e03878', 2);
+    drawTextCentered(ctx, `${this.got.size}/${this.list.length}`, 80, 19, UI.light);
     panel(ctx, 2, 26, 156, 92);
     this.rowRects = [];
     for (let i = 0; i < 10; i++) {
       const k = this.scroll + i;
-      const m = MOTES[k];
+      const m = this.list[k];
       if (!m) break;
       const y = 31 + i * 8;
       const have = this.got.has(m[0]);
       const sel = k === this.sel;
-      if (sel) { ctx.fillStyle = UI.dark; ctx.fillRect(4, y - 1, 152, 8); }
+      if (sel) { ctx.fillStyle = UI.dark; ctx.fillRect(4, y - 1, 148, 8); }
       drawIcon(ctx, have ? 'star' : 'pukeEmpty', 6, y - 2);
-      drawText(ctx, have ? m[0] : '? ? ? ? ? ?', 16, y, have ? (sel ? UI.yellow : UI.light) : UI.grey);
-      this.rowRects.push({ x: 4, y: y - 1, w: 152, h: 8 });
+      // los méritos muestran siempre el nombre; motes y medallas se ocultan
+      const shown = have || this.showHint ? m[0] : '? ? ? ? ? ?';
+      drawText(ctx, shown, 16, y, have ? (sel ? UI.yellow : UI.light) : UI.grey);
+      this.rowRects.push({ x: 4, y: y - 1, w: 148, h: 8 });
     }
-    // barra de scroll
-    ctx.fillStyle = UI.dark; ctx.fillRect(153, 30, 2, 86);
-    ctx.fillStyle = UI.grey; ctx.fillRect(153, 30 + Math.round((this.scroll / (MOTES.length - 10)) * 70), 2, 16);
-    const cur = MOTES[this.sel];
+    if (this.list.length > 10) {
+      ctx.fillStyle = UI.dark; ctx.fillRect(153, 30, 2, 86);
+      ctx.fillStyle = UI.grey; ctx.fillRect(153, 30 + Math.round((this.scroll / (this.list.length - 10)) * 70), 2, 16);
+    }
+    const cur = this.list[this.sel];
+    const have = this.got.has(cur[0]);
     panel(ctx, 2, 118, 156, 12, UI.dark);
-    drawTextCentered(ctx, this.got.has(cur[0]) ? cur[1] : 'QUE TE PILLEN PARA DESBLOQUEARLO', 80, 121, this.got.has(cur[0]) ? UI.pink : UI.grey);
+    const txt = have ? (cur[1] || '¡CONSEGUIDO!') : this.showHint ? 'AÚN NO CONSEGUIDO' : this.lockedHint;
+    const w = wrapText(txt, 150);
+    drawTextCentered(ctx, w[0], 80, 121, have ? UI.pink : UI.grey);
     this.backRect = button(ctx, 'VOLVER', 50, 132, 60, false);
   }
 }

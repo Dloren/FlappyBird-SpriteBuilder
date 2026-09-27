@@ -39,7 +39,7 @@ export class Level {
 // ---------- Aspecto de NPCs ----------
 export const SKIN = ['#f0c098', '#e8b088', '#d09060', '#a86c44', '#7c4c30', '#f8d8c0'];
 export const HAIR = { black: '#201820', brown: '#5a3420', dark: '#3c2418', blond: '#e8c060', red: '#c05028', grey: '#b8b8c0', white: '#e8e8f0', pink: '#f090c0', blue: '#4878d8' };
-export const GROUP_SHIRT = '#f060a8'; // distintivo del grupo (NPC-A)
+export const GROUP_SHIRT = '#f060a8'; // marcador: resolveLevel lo sustituye por ropa normal
 export const OUTLINE = '#1e1428';
 
 export function look(o = {}) {

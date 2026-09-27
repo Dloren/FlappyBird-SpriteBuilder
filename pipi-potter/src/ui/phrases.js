@@ -3,7 +3,7 @@ export const ROLE_TYPE = {
   friend: 'friends', partner: 'partner', family: 'family', inlaw: 'family',
   groom: 'couple', bride: 'couple',
   waiter: 'staff', bouncer: 'staff', bartender: 'staff', stall: 'staff',
-  security: 'security', police: 'police',
+  security: 'security', police: 'police', boss: 'boss',
 };
 
 export const TYPE_TITLE = {
@@ -14,6 +14,7 @@ export const TYPE_TITLE = {
   partner: 'ANDREINA TE HA PILLADO',
   family: 'LA FAMILIA TE HA PILLADO',
   couple: 'LOS NOVIOS TE HAN PILLADO',
+  boss: 'TU JEFE TE HA PILLADO',
 };
 
 export const PHRASES = {
@@ -65,6 +66,14 @@ export const PHRASES = {
     'EL FOTÓGRAFO YA TIENE LA FOTO DEL AÑO.',
   ],
 };
+
+PHRASES.boss = [
+  'EL LUNES, A LAS 9, EN MI DESPACHO.',
+  'TU BONUS DE NAVIDAD SE HA IDO POR EL DESAGÜE.',
+  'RECURSOS HUMANOS YA ESTÁ REDACTANDO TU CARTA.',
+  'NUEVO PUESTO: BECARIO DE LA FOTOCOPIADORA.',
+  'EL AÑO QUE VIENE CENAS EN LA OFICINA. SOLO.',
+];
 
 export const BREATH_PREFIX = [
   'TE HAN OLIDO EL ALIENTO. ',

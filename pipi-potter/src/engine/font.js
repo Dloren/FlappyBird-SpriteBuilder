@@ -64,7 +64,7 @@ const G = {
   '&': '.#.#.#.#.#.#.##',
 };
 
-const ACCENTS = { 'Á': 'A', 'É': 'E', 'Í': 'I', 'Ó': 'O', 'Ú': 'U', 'Ü': 'U' };
+const ACCENTS = { 'Á': 'A', 'É': 'E', 'Í': 'I', 'Ó': 'O', 'Ú': 'U', 'Ü': 'U', 'Ñ': 'N' };
 
 const cache = new Map();
 function glyphCanvas(ch, color) {
@@ -79,7 +79,7 @@ function glyphCanvas(ch, color) {
   if (ACCENTS[ch]) { base = ACCENTS[ch]; accent = true; }
   const bits = G[base] || G['?'];
   for (let i = 0; i < 15; i++) if (bits[i] === '#') g.fillRect(i % 3, 1 + Math.floor(i / 3), 1, 1);
-  if (accent) g.fillRect(2, 0, 1, 1);
+  if (accent) { if (ch === 'Ñ') g.fillRect(0, 0, 3, 1); else g.fillRect(2, 0, 1, 1); }
   cache.set(key, c);
   return c;
 }

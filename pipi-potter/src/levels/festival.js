@@ -56,6 +56,16 @@ export default {
   player: [18, 14],
   npcs: [
     {
+      kind: 'A', role: 'friend', name: 'F7',
+      look: look({ style: 'short', hair: HAIR.blond, skin: SKIN[1] }),
+      route: [[30, 23, 3, 'up'], [8, 21, 0], [16, 24, 3, 'left'], [20, 19, 1], [30, 23, 2]],
+    },
+    {
+      kind: 'A', role: 'friend', name: 'F8',
+      look: look({ style: 'bun', hair: HAIR.black, skin: SKIN[3], body: 'dress' }),
+      route: [[2, 1, 2, 'down'], [10, 3, 2], [33, 3, 3, 'left'], [34, 12, 2, 'up'], [18, 13, 1]],
+    },
+    {
       kind: 'A', role: 'friend', name: 'F5',
       look: look({ style: 'long', hair: HAIR.pink, skin: SKIN[0], body: 'dress' }),
       route: [[27, 12, 3, 'right'], [29, 20, 4, 'up'], [18, 19, 2], [22, 11, 3, 'up']],
@@ -123,5 +133,8 @@ export default {
     { kind: 'B', role: 'crowd', behavior: 'static', at: [30, 15], dir: 'down', look: look({ style: 'bun', shirt: '#f070b0', hair: HAIR.blond, body: 'dress' }) },
     { kind: 'B', role: 'crowd', route: [[33, 5, 3], [33, 25, 3], [27, 25, 2]], look: look({ style: 'cap', cap: '#58c048', shirt: '#303030' }) },
   ],
-  items: [['pitillo', 33, 2], ['pitillo', 3, 14], ['pitillo', 30, 25], ['pitillo', 14, 15], ['sobras', 33, 9], ['botella', 12, 23], ['mechero', 1, 15]],
+  items: [
+    ['pitillo', 10, 1], ['pitillo', 33, 1], ['pitillo', 3, 15], ['pitillo', 24, 26], ['pitillo', 34, 26],
+    ['sobras', 33, 9], ['botella', 12, 23], ['mechero', 1, 15],
+  ],
 };

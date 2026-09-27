@@ -24,7 +24,7 @@ function phone(ctx, x, y, t) {
 const BG = {
   friends: ['#3a2850', '#231a30'], staff: ['#402020', '#201010'], security: ['#303848', '#181c28'],
   partner: ['#503048', '#281828'], family: ['#3c4830', '#1c2418'], police: ['#283858', '#141c30'],
-  couple: ['#584850', '#302830'],
+  couple: ['#584850', '#302830'], boss: ['#3a3440', '#1c1a22'],
 };
 
 export function drawGameOverArt(ctx, info, x, y, t) {
@@ -90,6 +90,15 @@ export function drawGameOverArt(ctx, info, x, y, t) {
       // líneas de "vetado"
       R(ctx, x + 4, y + 4, 34, 11, UI.red);
       drawText(ctx, 'VETADO', x + 7, y + 7, UI.light);
+      break;
+    }
+    case 'boss': {
+      drawCharacter(ctx, cs, 'left', 0, cx, cy, 2);
+      // carta de despido
+      R(ctx, cx - 8, cy + 12, 14, 16, '#f4f4f4');
+      for (let i = 0; i < 5; i++) R(ctx, cx - 6, cy + 15 + i * 2, 10, 1, '#8890a8');
+      R(ctx, cx - 6, cy + 14, 10, 1, UI.red);
+      bubble(ctx, '¡A MI DESPACHO!', x + 54, y + 5);
       break;
     }
     case 'police': {
