@@ -14,7 +14,7 @@ const PEDO_LINES = ['¡VAYA PEDO LLEVAS!', 'VAS COMO LAS GRECAS', '¿ESTÁS BIEN
 
 export const S = {
   ROUTINE: 'routine', SUSPICIOUS: 'suspicious', SEARCH: 'search', ALERT: 'alert',
-  INVESTIGATE: 'investigate', DISTRACTED: 'distracted', RETURN: 'return', HUNT: 'hunt', CHASE: 'chase',
+  INVESTIGATE: 'investigate', DISTRACTED: 'distracted', RETURN: 'return', HUNT: 'hunt', CHASE: 'chase', FOLLOW: 'follow', TRACK: 'track',
 };
 
 export class NPC {
@@ -219,6 +219,13 @@ export class NPC {
     const immune = P.chicleT > 0;
     if (visible && !staff) game.friendSawPlayer(this);
 
+    // 0) Últimos 10 s tras la 3ª pota: si le ven, le siguen con "?" (sin "!");
+    //    sólo es GAME OVER si le tocan (le pillan por las manchas de la camiseta)
+    if (!staff && game.escapeT !== null && this.state !== S.CHASE && (visible || this.state === S.FOLLOW)) {
+      this.updateFollow(dt, game, visible, d);
+      return;
+    }
+
     // 1) Le ven potando, o le ven a él y a una pota a la vez → "!" y a por él
     if (visible && this.state !== S.CHASE) {
       const witness = P.isPuking || game.puddleSeenBy(this);
@@ -267,6 +274,11 @@ export class NPC {
         this.suspicion = Math.max(0, this.suspicion - D.decay * dt);
         // ¿ve un charco o un rastro?
         const clue = game.findClue(this);
+        if (clue && clue.kind === 'trail' && !staff) {
+          if (this.state === S.HUNT) game.endHunt(this);
+          this.startTrack(game, clue);
+          break;
+        }
         if (clue) {
           if (this.state === S.HUNT) game.endHunt(this);
           this.investigateAt(clue.x, clue.y, clue.kind === 'puddle' ? pick(['¿QUÉ ES ESO?', '¿ESO ES... POTA?', 'PUAJ, ¿Y ESTO?']) : '¿HUELLAS?');
@@ -320,8 +332,16 @@ export class NPC {
         }
         break;
       }
+      case S.TRACK: {
+        this.updateTrack(dt, game, d);
+        break;
+      }
       case S.SEARCH:
       case S.INVESTIGATE: {
+        if (this.state === S.INVESTIGATE && !staff && !visible) {
+          const tr = game.findClue(this);
+          if (tr && tr.kind === 'trail') { this.startTrack(game, tr); break; }
+        }
         if (this.afterChase && visible && (!staff || this.staffCares(P))) { this.startChase(game, this.chaseWhy || 'again'); break; }
         if (canNotice) {
           this.lastSeen = { x: P.x, y: P.y };
@@ -406,6 +426,67 @@ export class NPC {
       }
       default: break;
     }
+  }
+
+  // ----- Seguir a Pipi en los 10 s finales ("?", sin persecución) -----
+  updateFollow(dt, game, visible, d) {
+    const P = game.player;
+    if (this.state !== S.FOLLOW) {
+      if (this.state === S.HUNT) game.endHunt(this);
+      this.inspect = null;
+      this.state = S.FOLLOW; this.stateT = 0; this.lostT = 0; this.followRepath = 0; this.lostPlanned = false;
+      this.say(pick(['¿PIPI? ¿QUÉ LLEVAS EN LA CAMISETA?', 'PIPI, VEN UN MOMENTO...', '¿ESO ES... POTA?', 'PIPI, ¿ESTÁS BIEN?']), 2);
+      game.sfx('suspect');
+    }
+    if (visible) {
+      this.lastSeen = { x: P.x, y: P.y };
+      this.lostT = 0; this.lostPlanned = false;
+      this.followRepath -= dt;
+      if (this.followRepath <= 0 || !this.path || this.pathIdx >= this.path.length) { this.planTo({ x: P.x, y: P.y }); this.followRepath = 0.4; }
+    } else {
+      this.lostT += dt;
+      if (!this.lostPlanned && this.lastSeen) { this.planTo(this.lastSeen); this.lostPlanned = true; }
+    }
+    if (this.path && this.pathIdx < this.path.length) this.followPath(dt, CONFIG.npcSpeed.search);
+    else { this.moving = false; this.lookAround(dt); }
+    if (d < CONFIG.detection.catchDistance) { game.caught(this, 'stains'); return; }
+    if (this.lostT > CONFIG.detection.lostSearchTime) this.resumeRoutine();
+  }
+
+  // ----- Rastro de huellas de pota: lo siguen hacia Pipi -----
+  startTrack(game, fp) {
+    this.state = S.TRACK; this.stateT = 0; this.inspect = null;
+    this.trackFp = fp;
+    this.planTo({ x: fp.x, y: fp.y });
+    this.say(pick(['¿HUELLAS DE... POTA?', 'ESTAS PISADAS HUELEN RARO...', 'A VER A DÓNDE LLEVA ESTO']), 1.8);
+    game.onSuspicion(this, 'trail');
+    game.sfx('suspect');
+  }
+
+  updateTrack(dt, game, d) {
+    const fps = game.footprints;
+    const cur = this.trackFp;
+    const reached = !cur || cur.life <= 0 || !this.path || this.pathIdx >= this.path.length;
+    if (reached) {
+      // siguiente huella del rastro: la siguiente más nueva y cercana
+      const from = cur || this;
+      const i = cur ? fps.indexOf(cur) : -1;
+      let next = null;
+      for (let j = i + 1; j < fps.length; j++) {
+        const f = fps[j];
+        if (f.life > 0.3 && dist(f.x, f.y, from.x, from.y) < 40) { next = f; break; }
+      }
+      if (!next && i < 0) next = fps.find((f) => f.life > 0.3 && dist(f.x, f.y, this.x, this.y) < 40) || null;
+      if (!next) {
+        // el rastro desaparece: mismo estado que al ver una pota
+        this.investigateAt(this.x, this.y, pick(['EL RASTRO SE ACABA AQUÍ...', '¿POR DÓNDE HA IDO?', 'AQUÍ SE PIERDE...']));
+        return;
+      }
+      this.trackFp = next;
+      this.planTo({ x: next.x, y: next.y });
+    }
+    this.followPath(dt, CONFIG.npcSpeed.search);
+    if (d < CONFIG.detection.catchDistance) game.caught(this, 'trail');
   }
 
   startChase(game, why) {
@@ -546,6 +627,7 @@ export class NPC {
       case S.SUSPICIOUS: case S.INVESTIGATE: case S.DISTRACTED: return '#f8c030';
       case S.SEARCH: return '#f88030';
       case S.HUNT: return '#f8a8e0';
+      case S.FOLLOW: case S.TRACK: return '#f8c030';
       case S.ALERT: return '#f8d030';
       default: return this.marked ? '#f8e070' : '#f8f0c0';
     }

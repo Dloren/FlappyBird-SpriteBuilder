@@ -77,6 +77,7 @@ const app = {
 };
 window.__pipi = app; // útil para depurar desde la consola
 window.__pipiInput = input;
+window.__pipiAudio = audio;
 // Vista previa de un nivel completo (depuración): __pipi.preview(i) → dataURL
 app.preview = (i) => {
   const sc = new PlayScene(app, i);
@@ -98,6 +99,12 @@ input.attach(canvas, document.getElementById('controls'));
 input.onFirstInteraction = () => audio.init();
 // En la APK el WebView permite audio sin gesto: intenta arrancar ya la música de la intro
 try { audio.init(); } catch (_) { /* noop */ }
+// En Chrome Android el toque sólo desbloquea el audio al LEVANTAR el dedo
+const unlockAudio = () => {
+  audio.unlock();
+  if (audio.running) ['touchend', 'pointerup', 'click', 'keydown'].forEach((ev) => document.removeEventListener(ev, unlockAudio, true));
+};
+['touchend', 'pointerup', 'click', 'keydown'].forEach((ev) => document.addEventListener(ev, unlockAudio, true));
 
 // ---------- Integración nativa (APK) ----------
 if (isNative()) {

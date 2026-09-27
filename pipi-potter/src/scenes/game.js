@@ -477,6 +477,7 @@ export class PlayScene {
   buildGameOverInfo() {
     const n = this.catcher;
     let type = ROLE_TYPE[n.role] || 'friends';
+    if (this.caughtReason === 'stains') type = n.role === 'coworker' ? 'coworkers' : 'friends';
     const sameKind = this.npcs.filter((o) => o !== n && o.kind === n.kind && ROLE_TYPE[o.role] === type);
     return {
       type, reason: this.caughtReason, catcherSpec: n.spec, catcherName: n.name, role: n.role,
@@ -628,6 +629,7 @@ export class PlayScene {
       case S.CHASE: bubble(UI.red, '!', UI.light); break;
       case S.ALERT: bubble(UI.yellow, '!', UI.ink); break;
       case S.HUNT: if (Math.floor(this.time * 2) % 2) bubble(UI.pink, '?', UI.ink); break;
+      case S.FOLLOW: case S.TRACK: bubble(UI.yellow, '?', UI.ink); break;
       case S.DISTRACTED: bubble(UI.light, '?', UI.grey); break;
       default:
         if (n.marked) bubble(UI.yellow, '?', UI.red);
@@ -680,7 +682,7 @@ export class PlayScene {
     ctx.fillStyle = UI.red; ctx.fillRect(x - 6, y - 3, 12, 16);
     drawText(ctx, '!', x - 2, y, UI.light, s);
     panel(ctx, 24, 116, 112, 15);
-    const txt = this.caughtReason === 'breath' ? '¡TE HA OLIDO EL ALIENTO!' : this.caughtReason === 'chase' || this.caughtReason === 'staff' ? '¡TE HAN ALCANZADO!' : this.caughtReason === 'staff' ? '¡TE HAN PILLADO!' : '¡TE HAN VISTO POTAR!';
+    const txt = this.caughtReason === 'stains' ? '¡TE HAN VISTO LAS MANCHAS!' : this.caughtReason === 'trail' ? '¡TE HAN SEGUIDO EL RASTRO!' : this.caughtReason === 'breath' ? '¡TE HA OLIDO EL ALIENTO!' : this.caughtReason === 'chase' || this.caughtReason === 'staff' ? '¡TE HAN ALCANZADO!' : this.caughtReason === 'staff' ? '¡TE HAN PILLADO!' : '¡TE HAN VISTO POTAR!';
     drawTextCentered(ctx, txt, 80, 121, UI.yellow);
   }
 

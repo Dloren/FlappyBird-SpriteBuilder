@@ -57,6 +57,19 @@ class ChipAudio {
     return this.ctx.createPeriodicWave(real, imag);
   }
 
+  // Desbloqueo para móviles: debe llamarse dentro de un gesto válido
+  // (touchend / pointerup / click / keydown en Chrome Android e iOS)
+  unlock() {
+    if (!this.ctx) this.init();
+    if (!this.ctx) return;
+    if (this.ctx.state !== 'running') this.ctx.resume().catch(() => {});
+    try {
+      const b = this.ctx.createBuffer(1, 1, 22050);
+      const src = this.ctx.createBufferSource();
+      src.buffer = b; src.connect(this.ctx.destination); src.start(0);
+    } catch (_) { /* noop */ }
+  }
+
   get running() { return !!(this.ctx && this.ctx.state === 'running'); }
 
   setMuted(m) {

@@ -59,12 +59,12 @@ export default {
   player: [18, 24],
   npcs: [
     {
-      kind: 'A', role: 'friend', name: 'F6',
+      kind: 'A', role: 'coworker', name: 'F6',
       look: suit(0, { style: 'short', hair: HAIR.black, skin: SKIN[1] }),
       route: [[2, 5, 3, 'down'], [2, 20, 2], [10, 24, 3], [19, 23, 0], [19, 19, 2, 'up'], [12, 9, 3, 'up']],
     },
     {
-      kind: 'A', role: 'friend', name: 'F7',
+      kind: 'A', role: 'coworker', name: 'F7',
       look: suit(1, { style: 'long', hair: HAIR.blond, skin: SKIN[0], body: 'dress' }),
       route: [[33, 3, 3, 'down'], [33, 22, 2], [27, 24, 2], [24, 20, 3, 'up'], [26, 11, 2], [33, 10, 0]],
     },
@@ -76,17 +76,17 @@ export default {
     { kind: 'B', role: 'guest', behavior: 'static', at: [13, 11], dir: 'right', look: look({ shirt: '#486848', hair: HAIR.grey, body: 'belly', mustache: true }) },
     { kind: 'B', role: 'dog', name: 'CANELA', route: [[2, 12, 1], [10, 15, 1], [20, 15, 2], [28, 19, 0], [33, 24, 2], [8, 24, 1]], look: { dog: true, outline: '#2a1c14', fur: '#a86838', spot: '#f0d8b0' } },
     {
-      kind: 'A', role: 'friend', name: 'TONI',
+      kind: 'A', role: 'coworker', name: 'TONI',
       look: suit(2, { style: 'short', hair: HAIR.black, skin: SKIN[2], beard: true, body: 'belly' }),
       route: [[18, 5, 4, 'up'], [12, 9, 3, 'up'], [2, 10, 3, 'down'], [6, 15, 0], [17, 15, 3, 'up']],
     },
     {
-      kind: 'A', role: 'friend', name: 'MARI', label: 'AMIGA',
+      kind: 'A', role: 'coworker', name: 'MARI', label: 'AMIGA',
       look: suit(3, { style: 'long', hair: HAIR.red, skin: SKIN[0], body: 'dress' }),
       route: [[26, 9, 3, 'up'], [33, 10, 3, 'down'], [33, 18, 2], [26, 18, 0], [22, 11, 3, 'left']],
     },
     {
-      kind: 'A', role: 'friend', name: 'PACO',
+      kind: 'A', role: 'coworker', name: 'PACO',
       look: suit(4, { style: 'short', hair: HAIR.brown, skin: SKIN[1], glasses: true }),
       route: [[14, 22, 4, 'up'], [3, 24, 3, 'left'], [2, 15, 0], [10, 15, 2, 'right'], [22, 22, 3, 'up']],
     },

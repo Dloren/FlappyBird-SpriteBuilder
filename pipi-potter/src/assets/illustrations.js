@@ -22,7 +22,7 @@ function phone(ctx, x, y, t) {
 
 // Paleta de fondo por tipo
 const BG = {
-  friends: ['#3a2850', '#231a30'], staff: ['#402020', '#201010'], security: ['#303848', '#181c28'],
+  friends: ['#3a2850', '#231a30'], coworkers: ['#3a3440', '#1c1a22'], staff: ['#402020', '#201010'], security: ['#303848', '#181c28'],
   partner: ['#503048', '#281828'], family: ['#3c4830', '#1c2418'], police: ['#283858', '#141c30'],
   couple: ['#584850', '#302830'], boss: ['#3a3440', '#1c1a22'],
 };
@@ -50,6 +50,7 @@ export function drawGameOverArt(ctx, info, x, y, t) {
   const cs = info.catcherSpec;
   const cx = x + 96, cy = y + 24;
   switch (info.type) {
+    case 'coworkers':
     case 'friends': {
       // Todos los que había en pantalla se ríen (amigos x2 delante, el resto detrás)
       const crowd = info.onScreen || [];

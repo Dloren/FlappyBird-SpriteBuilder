@@ -3,7 +3,7 @@ export const ROLE_TYPE = {
   friend: 'friends', partner: 'partner', family: 'family', inlaw: 'family',
   groom: 'couple', bride: 'couple',
   waiter: 'staff', bouncer: 'staff', bartender: 'staff', stall: 'staff',
-  security: 'security', police: 'police', boss: 'boss',
+  security: 'security', police: 'police', boss: 'boss', coworker: 'coworkers',
 };
 
 export const TYPE_TITLE = {
@@ -15,6 +15,7 @@ export const TYPE_TITLE = {
   family: 'LA FAMILIA TE HA PILLADO',
   couple: 'LOS NOVIOS TE HAN PILLADO',
   boss: 'TU JEFE TE HA PILLADO',
+  coworkers: 'TUS COMPAÑEROS TE HAN PILLADO',
 };
 
 export const PHRASES = {
@@ -66,6 +67,14 @@ export const PHRASES = {
     'EL FOTÓGRAFO YA TIENE LA FOTO DEL AÑO.',
   ],
 };
+
+PHRASES.coworkers = [
+  'EL LUNES SERÁS EL TEMA DEL CAFÉ DE LAS 11.',
+  'YA HAY UN GIF TUYO EN EL SLACK DE LA EMPRESA.',
+  'TE HAN NOMINADO A "EMPLEADO DEL MES"... DE LAS POTAS.',
+  'EL VÍDEO LO HAN MANDADO AL CANAL DE #GENERAL.',
+  'EN LA PRÓXIMA REUNIÓN TE PONDRÁN UN CUBO AL LADO.',
+];
 
 PHRASES.boss = [
   'EL LUNES, A LAS 9, EN MI DESPACHO.',

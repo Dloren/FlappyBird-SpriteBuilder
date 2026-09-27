@@ -6,7 +6,8 @@ import { audio } from '../audio/audio.js';
 import { UI, panel, cursor, button, makeCanvas } from '../engine/gfx.js';
 import { drawText, drawTextCentered, wrapText, textWidth } from '../engine/font.js';
 import { pick, fmtTime, clamp, rand } from '../engine/util.js';
-import { drawCharacter, pipiSpec, drawIcon, makePuddle, PORTRAIT } from '../assets/sprites.js';
+import { drawCharacter, pipiSpec, drawIcon, makePuddle } from '../assets/sprites.js';
+import portraitUrl from '../assets/portrait.png';
 import { drawGameOverArt } from '../assets/illustrations.js';
 import { LEVELS } from '../levels/index.js';
 import { resolveLevel } from '../levels/names.js';
@@ -124,7 +125,7 @@ export class TitleScene {
       }
     }
     // cara gigante + peineta
-    if (this.faceY < 145) drawPipiFace(ctx, 53, Math.round(this.faceY), this.t);
+    if (this.faceY < 145) drawPipiFace(ctx, 57, Math.round(this.faceY));
     // logo
     const bob = Math.round(Math.sin(this.t * 3) * 1.5);
     centeredOutlined(ctx, 'PIPI', 80, 6 + bob, UI.yellow, '#e03878', 4);
@@ -136,25 +137,12 @@ export class TitleScene {
   }
 }
 
-// Retrato de Pipi a lo grande (x3), modelo del icono, haciendo la peineta
-const FACE_Y = 60;
-export function drawPipiFace(ctx, x, y, t) {
-  const col = { o: '#2a1a16', h: '#6a4226', d: '#3c2416', s: '#f6c8a2', l: '#fadcc8', t: '#f0f0f4', e: '#140c10', m: '#4a2c1c' };
-  const blink = Math.floor(t * 10) % 37 === 0;
-  const wiggle = Math.floor(t * 5) % 2;
-  const S = 3;
-  PORTRAIT.forEach((r, ry) => {
-    for (let rx = 0; rx < r.length; rx++) {
-      let c = r[rx];
-      if (blink && c === 'e') c = 's';
-      const k = col[c];
-      if (!k) continue;
-      // la mano (columnas de la derecha) se mueve un poco
-      const dy = rx >= 13 && ry >= 8 && ry <= 12 && wiggle ? -1 : 0;
-      ctx.fillStyle = k;
-      ctx.fillRect(x + rx * S, y + (ry + dy) * S, S, S);
-    }
-  });
+// Retrato de Pipi: la imagen de referencia tal cual (assets/portrait.png)
+const FACE_Y = 58;
+const portraitImg = new Image();
+portraitImg.src = portraitUrl;
+export function drawPipiFace(ctx, x, y) {
+  if (portraitImg.complete && portraitImg.naturalWidth) ctx.drawImage(portraitImg, x, y);
 }
 
 // ============================================================
@@ -415,7 +403,7 @@ export class LevelIntroScene {
       const col = i % per, row = Math.floor(i / per);
       const cx = per === 5 ? 17 + col * 31 : 22 + col * 39, yy = 84 + row * 25;
       drawCharacter(ctx, n.look, 'down', 0, cx - 8, yy);
-      drawTextCentered(ctx, n.name, cx, yy + 17, n.role === 'friend' ? UI.light : UI.yellow);
+      drawTextCentered(ctx, n.name, cx, yy + 17, n.role === 'friend' || n.role === 'coworker' ? UI.light : UI.yellow);
     });
     if (Math.floor(this.t * 2) % 2) drawTextCentered(ctx, 'PULSA A: ¡A POTAR!', 80, 137, UI.yellow);
   }
@@ -546,7 +534,7 @@ export class GameOverScene {
     this.t = 0;
     const base = pick(PHRASES[this.info.type] || PHRASES.friends);
     this.phrase = (this.info.reason === 'breath' ? pick(BREATH_PREFIX) : '') + base;
-    this.title = this.info.reason === 'breath' ? `${this.info.catcherName} TE HA OLIDO` : TYPE_TITLE[this.info.type];
+    this.title = this.info.reason === 'breath' ? `${this.info.catcherName} TE HA OLIDO` : this.info.reason === 'stains' ? `${this.info.catcherName} HA VISTO TUS MANCHAS` : TYPE_TITLE[this.info.type];
     this.score = this.app.run.score;
     this.sel = 0;
     this.msg = null;
