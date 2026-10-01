@@ -39,9 +39,9 @@ export const CONFIG = {
   },
 
   trail: {
-    duration: 6,               // segundos dejando huellas tras pisar charco
+    duration: 15,              // segundos dejando huellas tras pisar un charco
     stepDist: 7,               // cada cuántos px se deja una huella
-    fade: 30,                  // lo que dura una huella en el suelo (s)
+    fade: 8,                   // lo que tarda en borrarse cada huella (s)
   },
 
   vision: {

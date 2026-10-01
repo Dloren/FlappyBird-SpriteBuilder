@@ -515,7 +515,11 @@ export class NPC {
       this.planTo({ x: next.x, y: next.y });
     }
     this.followPath(dt, CONFIG.npcSpeed.search);
-    if (d < CONFIG.detection.catchDistance) game.caught(this, 'trail');
+    // Siguiendo el rastro sólo le pillan si aún deja huellas, lleva la mancha
+    // o este NPC ya había visto una pota y Pipi no lleva chicle
+    const P = game.player;
+    const guilty = P.trailT > 0 || P.stained || (this.marked && !(P.chicleT > 0));
+    if (d < CONFIG.detection.catchDistance && guilty) game.caught(this, 'trail');
   }
 
   startChase(game, why) {
