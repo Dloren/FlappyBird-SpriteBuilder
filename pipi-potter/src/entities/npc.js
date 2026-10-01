@@ -218,12 +218,26 @@ export class NPC {
     const d = dist(this.x, this.y, P.x, P.y);
     const immune = P.chicleT > 0;
     if (visible && !staff) game.friendSawPlayer(this);
+    if (visible) this.lastSawPipi = game.time;
+    if (this.greetCD > 0) this.greetCD -= dt;
 
     // 0) Últimos 10 s tras la 3ª pota: si le ven, le siguen con "?" (sin "!");
     //    sólo es GAME OVER si le tocan (le pillan por las manchas de la camiseta)
     if (!staff && game.escapeT !== null && this.state !== S.CHASE && (visible || this.state === S.FOLLOW)) {
       this.updateFollow(dt, game, visible, d);
       return;
+    }
+
+    // 0b) Hay un NPC-A persiguiendo a Pipi ("!"): si ve a Pipi corriendo o ve correr
+    //     al perseguidor, se une a la persecución
+    if (!staff && this.state !== S.CHASE && game.chasers.length) {
+      const lead = game.chasers.find((c) => c !== this && !c.isStaff);
+      if (lead && (visible || (game.chaseSeenPrev && this.sees(game, lead.x, lead.cy)))) {
+        if (this.state === S.HUNT) game.endHunt(this);
+        this.chaseWhy = lead.chaseWhy;
+        this.startChase(game, 'again');
+        return;
+      }
     }
 
     // 1) Le ven potando, o le ven a él y a una pota a la vez → "!" y a por él
@@ -272,6 +286,13 @@ export class NPC {
           break;
         }
         this.suspicion = Math.max(0, this.suspicion - D.decay * dt);
+        // Saludo: sólo amigos y compañeros, y sólo si Pipi va "normal"
+        if (visible && (this.role === 'friend' || this.role === 'coworker') && (this.state === S.ROUTINE || this.state === S.RETURN)
+          && !(this.greetCD > 0) && !this.marked && P.nausea < D.nauseaSuspicion && !P.isPuking && !(P.trailT > 0)
+          && game.escapeT === null && !game.pipiSuspected) {
+          this.say(pick(['¡PIPS!', '¿QUÉ PASA, PIPI?', 'PIPI', '¡ESE PINA!', '¡CHIQUITÍN!']), 1.6);
+          this.greetCD = D.greetCooldown;
+        }
         // ¿ve un charco o un rastro?
         const clue = game.findClue(this);
         if (clue && clue.kind === 'trail' && !staff) {
@@ -310,7 +331,12 @@ export class NPC {
           }
           if (this.path && this.pathIdx < this.path.length) this.followPath(dt, CONFIG.npcSpeed.search);
           else { this.moving = false; this.lookAround(dt); }
-          if (this.stateT > D.huntDuration) { game.endHunt(this); this.resumeRoutine(); }
+          const informed = game.npcs.find((o) => o !== this && o.kind === 'A' && o.lastSawPipi > this.huntStart && this.sees(game, o.x, o.cy));
+          if (informed) {
+            this.say(pick(['AH, ¿YA HA APARECIDO?', '¿LO HABÉIS VISTO? VALE.', 'VALE, YA ESTÁ LOCALIZADO']), 1.8);
+            game.endHunt(this);
+            this.resumeRoutine();
+          }
         }
         break;
       }
@@ -390,8 +416,11 @@ export class NPC {
         break;
       }
       case S.CHASE: {
-        // "!": corre hacia Pipi; sólo es GAME OVER si le alcanza
-        if (visible && (!staff || this.staffCares(P))) {
+        // "!": corre hacia Pipi; sólo es GAME OVER si le alcanza.
+        // Los perseguidores comparten la vista: mientras uno le vea, todos saben dónde está
+        if (visible && !staff) game.chaseSeenNow = true;
+        const groupSees = visible || (!staff && game.chaseSeenPrev);
+        if (groupSees && (!staff || this.staffCares(P))) {
           this.lastSeen = { x: P.x, y: P.y };
           this.lostT = 0;
           this.lostPlanned = false;

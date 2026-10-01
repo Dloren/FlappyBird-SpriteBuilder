@@ -125,7 +125,7 @@ export class TitleScene {
       }
     }
     // cara gigante + peineta
-    if (this.faceY < 145) drawPipiFace(ctx, 57, Math.round(this.faceY));
+    if (this.faceY < 145) drawPipiFace(ctx, 52, Math.round(this.faceY));
     // logo
     const bob = Math.round(Math.sin(this.t * 3) * 1.5);
     centeredOutlined(ctx, 'PIPI', 80, 6 + bob, UI.yellow, '#e03878', 4);
@@ -138,7 +138,7 @@ export class TitleScene {
 }
 
 // Retrato de Pipi: la imagen de referencia tal cual (assets/portrait.png)
-const FACE_Y = 58;
+const FACE_Y = 78; // el busto (filas 14-32 del PNG) apoya sobre la calle (y=110)
 const portraitImg = new Image();
 portraitImg.src = portraitUrl;
 export function drawPipiFace(ctx, x, y) {

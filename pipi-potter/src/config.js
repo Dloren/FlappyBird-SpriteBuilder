@@ -41,7 +41,7 @@ export const CONFIG = {
   trail: {
     duration: 6,               // segundos dejando huellas tras pisar charco
     stepDist: 7,               // cada cuántos px se deja una huella
-    fade: 5,                   // lo que tarda una huella en desaparecer
+    fade: 30,                  // lo que dura una huella en el suelo (s)
   },
 
   vision: {
@@ -66,9 +66,9 @@ export const CONFIG = {
     nauseaSuspicion: 0.5,      // NPC-A sólo sospechan si la náusea supera esto
     staffNauseaSuspicion: 0.75,// el staff, a partir de esto
     huntAfter: 15,             // s sin que ningún amigo te vea → salen a buscarte
-    huntDuration: 25,          // lo que dura una batida
+    greetCooldown: 14,         // cada cuánto puede saludarte el mismo amigo (s)
     huntRepath: 3,
-    hunters: 2,                // cuántos salen a buscarte
+    hunters: 99,               // salen a buscarte todos los NPC-A disponibles
     chaseSpeedMul: 1.0,        // al correr ("!") van a la velocidad normal de Pipi
     chaseMax: 15,              // se cansan de perseguir
     chaseGiveUp: 3,            // s sin verte antes de rendirse

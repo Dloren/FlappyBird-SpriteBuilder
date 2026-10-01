@@ -63,6 +63,7 @@ export class PlayScene {
     this.reactedThisPuke = new Set();
     this.unseenT = 0;
     this.hunters = [];
+    this.chasers = [];
     this.time = 0;
     this.stats = { time: 0, pukes: 0, suspicions: 0, escapes: 0, sobras: 0, items: 0, pitis: 0, pitisFound: 0 };
     this.escapeT = null;
@@ -116,7 +117,7 @@ export class PlayScene {
     const free = this.npcs.filter((n) => n.kind === 'A' && (n.state === S.ROUTINE || n.state === S.RETURN))
       .sort((a, b) => dist(a.x, a.y, p.x, p.y) - dist(b.x, b.y, p.x, p.y)).slice(0, D.hunters);
     if (!free.length) return;
-    free.forEach((n) => n.startHunt());
+    free.forEach((n) => { n.startHunt(); n.huntStart = this.time; });
     this.hunters = free;
     this.message = { text: 'TUS AMIGOS TE BUSCAN', t: 2 };
     audio.sfx('suspect');
@@ -205,7 +206,7 @@ export class PlayScene {
   onPukeDone(p) {
     const f = p.facingVec();
     const pd = new Puddle(p.x + f.x * 9, p.y + f.y * 7 + 2);
-    p.stained = true;
+    if (this.stats.pukes >= 1) p.stained = true; // la mancha aparece a la 2ª pota
     this.puddles.push(pd);
     this.stats.pukes++;
     audio.sfx('puke');
@@ -383,7 +384,10 @@ export class PlayScene {
     this.frame = (this.frame || 0) + 1;
     const p = this.player;
     if (controls) this.stats.time += dt;
-    this.chased = this.npcs.some((n) => n.state === S.CHASE);
+    this.chasers = this.npcs.filter((n) => n.state === S.CHASE);
+    this.chaseSeenPrev = this.chaseSeenNow; this.chaseSeenNow = false;
+    this.pipiSuspected = this.npcs.some((n) => n.state === S.SUSPICIOUS || n.state === S.SEARCH || n.state === S.ALERT || n.state === S.FOLLOW || n.state === S.TRACK);
+    this.chased = this.chasers.length > 0;
     p.speedMul = this.chased ? CONFIG.player.chaseBoost : 1;
     if (controls) p.update(dt, this);
     if (controls) this.updateHunt(dt);
