@@ -125,24 +125,30 @@ export class TitleScene {
       }
     }
     // cara gigante + peineta
-    if (this.faceY < 145) drawPipiFace(ctx, 52, Math.round(this.faceY));
+    if (this.faceY < 145) drawPipiFace(ctx, 48, Math.round(this.faceY));
     // logo
     const bob = Math.round(Math.sin(this.t * 3) * 1.5);
     centeredOutlined(ctx, 'PIPI', 80, 6 + bob, UI.yellow, '#e03878', 4);
     centeredOutlined(ctx, 'POTTER', 80, 30 + bob, '#b8e070', '#2a6a28', 3);
     drawTextCentered(ctx, 'SIGILO, FIESTA Y ARCADAS', 80, 50, UI.light, 1, UI.ink);
     const hint = !audio.running && !this.audioAsked ? 'PULSA PARA EMPEZAR' : 'PULSA START';
-    if (Math.floor(this.t * 2) % 2) drawTextCentered(ctx, hint, 80, 128, UI.light, 1, UI.ink);
+    if (Math.floor(this.t * 2) % 2) drawTextCentered(ctx, hint, 80, 129, UI.light, 1, UI.ink);
     drawTextCentered(ctx, '(C) 2026 · CON CARIÑO Y ALMAX', 80, 137, '#8a80a0');
   }
 }
 
 // Retrato de Pipi: la imagen de referencia tal cual (assets/portrait.png)
-const FACE_Y = 78; // el busto (filas 14-32 del PNG) apoya sobre la calle (y=110)
+const FACE_Y = 55; // retrato 4x (64x72) bajo el título
 const portraitImg = new Image();
 portraitImg.src = portraitUrl;
+// Zona útil del PNG (el personaje, 16x18) dibujada a 4x por vecino más cercano
+const PORTRAIT_SRC = { x: 21, y: 14, w: 16, h: 18 };
+const PORTRAIT_SCALE = 4;
 export function drawPipiFace(ctx, x, y) {
-  if (portraitImg.complete && portraitImg.naturalWidth) ctx.drawImage(portraitImg, x, y);
+  if (!portraitImg.complete || !portraitImg.naturalWidth) return;
+  const { x: sx, y: sy, w, h } = PORTRAIT_SRC;
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(portraitImg, sx, sy, w, h, x, y, w * PORTRAIT_SCALE, h * PORTRAIT_SCALE);
 }
 
 // ============================================================

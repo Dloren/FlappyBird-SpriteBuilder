@@ -24,8 +24,9 @@
     font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   }
   body {
-    display: flex; align-items: center; justify-content: center;
-    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    /* la consola va arriba (más cerca del borde superior del móvil) para agarrarlo mejor */
+    display: flex; align-items: flex-start; justify-content: center;
+    padding: calc(env(safe-area-inset-top) + 2vh) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
     background: radial-gradient(ellipse at 50% 30%, #2a1c40 0%, #140c1c 70%);
   }
   #console {

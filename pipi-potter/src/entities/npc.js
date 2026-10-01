@@ -290,7 +290,7 @@ export class NPC {
         if (visible && (this.role === 'friend' || this.role === 'coworker') && (this.state === S.ROUTINE || this.state === S.RETURN)
           && !(this.greetCD > 0) && !this.marked && P.nausea < D.nauseaSuspicion && !P.isPuking && !(P.trailT > 0)
           && game.escapeT === null && !game.pipiSuspected) {
-          this.say(pick(['¡PIPS!', '¿QUÉ PASA, PIPI?', 'PIPI', '¡ESE PINA!', '¡CHIQUITÍN!']), 1.6);
+          this.say(pick(['¡PIPS!', '¿QUÉ PASA, PIPI?', 'PIPI', '¡ESE PINA!', '¿QUÉ PASA, BRO?']), 1.6);
           this.greetCD = D.greetCooldown;
         }
         // ¿ve un charco o un rastro?
